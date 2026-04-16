@@ -1,0 +1,152 @@
+const investidorData = {
+    setup: "investidor",
+    cor: "#1e4d2b",
+    ranks: [
+        "Escasso", "Poupador", "Rentista", "Acionista", "Cotista", 
+        "Especulador", "Visionário", "Venture", "Investidor", "Independente"
+    ],
+    quotes: [
+        "O mercado financeiro é um mecanismo para transferir dinheiro dos impacientes para os pacientes.",
+        "Não teste a profundidade do rio com os dois pés.",
+        "O risco vem de você não saber o que está fazendo.",
+        "Investir deve ser como ver a tinta secar ou a grama crescer.",
+        "O tempo é o melhor amigo dos bons negócios e o inimigo dos medíocres.",
+        "O juro composto é a oitava maravilha do mundo.",
+        "O preço é o que você paga; o valor é o que você leva.",
+        "A maioria das pessoas se interessa por ações quando todo mundo está interessado.",
+        "Se você não encontrar um jeito de ganhar dinheiro enquanto dorme, vai trabalhar até morrer.",
+        "Investir não é sobre bater o mercado, é sobre controlar a si mesmo.",
+        "O investidor de sucesso é um realista que vende para otimistas e compra de pessimistas.",
+        "Grandes fortunas são construídas na recessão e realizadas na euforia.",
+        "Não coloque todos os ovos na mesma cesta.",
+        "A riqueza é o que você não vê: são os carros não comprados e as joias não usadas.",
+        "A disciplina é o alicerce de qualquer patrimônio sólido.",
+        "Esteja com medo quando os outros forem gananciosos e seja ganancioso quando os outros tiverem medo.",
+        "O melhor momento para investir foi ontem. O segundo melhor é hoje.",
+        "O mercado pode permanecer irracional mais tempo do que você pode permanecer solvente.",
+        "Não tente prever a chuva, aprenda a construir a arca.",
+        "Diversificação é a proteção contra a ignorância.",
+        "Seja um mestre da alocação, não um escravo da cotação.",
+        "A volatilidade é o preço que você paga pelo desempenho superior.",
+        "Investir é a arte de gerenciar riscos, não de evitá-los.",
+        "Nunca invista em um negócio que você não consegue entender.",
+        "O lucro é feito na compra, não na venda.",
+        "Siga o fluxo do dinheiro, mas nunca a manada.",
+        "Patrimônio não se olha todo dia; valor se constrói em décadas.",
+        "A liquidez é o seu salva-vidas quando o mercado vira.",
+        "Informação vale ouro, mas o discernimento vale o tesouro inteiro.",
+        "A melhor proteção contra a inflação é a sua própria produtividade.",
+        "Dinheiro é um excelente escravo, mas um mestre terrível.",
+        "Riqueza não é ter muito dinheiro; é ter muitas opções.",
+        "A liberdade financeira é a habilidade de viver conforme seus próprios termos.",
+        "O investidor inteligente foca no processo, não no evento.",
+        "Sua mentalidade dita o tamanho do seu aporte.",
+        "O conhecimento paga os melhores juros.",
+        "Mantenha a calma quando os gráficos estiverem vermelhos.",
+        "A independência começa com o primeiro real que você decide não gastar.",
+        "Vença o consumo hoje para conquistar a liberdade amanhã.",
+        "O mercado testa sua convicção todos os dias.",
+        "Não trabalhe pelo dinheiro; faça o dinheiro trabalhar por você.",
+        "A simplicidade na estratégia supera a complexidade na execução.",
+        "O sucesso financeiro exige dizer 'não' para satisfações imediatas.",
+        "Seja o capitão do seu capital.",
+        "A verdadeira riqueza é o tempo que o dinheiro compra.",
+        "Construa um legado, não apenas uma conta bancária.",
+        "A integridade é o único ativo que você não pode recuperar se perder.",
+        "Invista em si mesmo antes de investir no mercado.",
+        "O investidor de elite não se abala com notícias de jornal.",
+        "A sabedoria financeira é a bússola para tempos de incerteza.",
+        "Mantenha sua bússola moral tão afiada quanto sua análise técnica.",
+        "A generosidade é o dividendo de uma vida próspera.",
+        "O topo é silencioso para quem sabe que venceu pelo método.",
+        "Blindagem patrimonial começa com a blindagem mental.",
+        "O mercado é um mestre severo, mas justo com os aplicados.",
+        "Sua carteira de investimentos é o mapa do seu futuro.",
+        "Respeite o dinheiro e ele respeitará você.",
+        "A sobriedade é a marca de quem domina as finanças.",
+        "O jogo só termina quando você alcança a independência.",
+        "Investir é a jornada de transformar esforço em liberdade."
+    ],
+    habitos: {
+        nivel1: [ // ESCASSO
+            { id: "in1_1", task: "Registrar todos os gastos do dia", xp: 50 },
+            { id: "in1_2", task: "Identificar um gasto desnecessário e cortá-lo", xp: 60 },
+            { id: "in1_3", task: "Ler 10 páginas de um livro sobre finanças", xp: 40 },
+            { id: "in1_4", task: "Estudar a diferença entre ativo e passivo", xp: 50 },
+            { id: "in1_5", task: "Definir um valor mínimo de aporte mensal", xp: 70 },
+            { id: "in1_6", task: "Não usar o cartão de crédito hoje", xp: 40 }
+        ],
+        nivel2: [ // POUPADOR
+            { id: "in2_1", task: "Transferir uma quantia para a reserva de emergência", xp: 100 },
+            { id: "in2_2", task: "Pesquisar sobre o rendimento atual da poupança vs CDI", xp: 50 },
+            { id: "in2_3", task: "Organizar as contas em uma planilha ou app", xp: 60 },
+            { id: "in2_4", task: "Evitar uma compra por impulso", xp: 80 },
+            { id: "in2_5", task: "Assistir a um vídeo sobre educação financeira básica", xp: 40 },
+            { id: "in2_6", task: "Checar se há taxas bancárias inúteis e cancelá-las", xp: 70 }
+        ],
+        nivel3: [ // RENTISTA
+            { id: "in3_1", task: "Realizar o primeiro aporte em um CDB ou Tesouro", xp: 150 },
+            { id: "in3_2", task: "Comparar taxas de corretoras diferentes", xp: 80 },
+            { id: "in3_3", task: "Entender o que é o IPCA e como ele afeta você", xp: 60 },
+            { id: "in3_4", task: "Calcular seu patrimônio líquido atual", xp: 100 },
+            { id: "in3_5", task: "Reinvestir um rendimento (por menor que seja)", xp: 120 },
+            { id: "in3_6", task: "Ler sobre marcação a mercado", xp: 90 }
+        ],
+        nivel4: [ // ACIONISTA
+            { id: "in4_1", task: "Estudar o balanço de uma empresa listada", xp: 150 },
+            { id: "in4_2", task: "Comprar uma ação com foco em longo prazo", xp: 200 },
+            { id: "in4_3", task: "Ler sobre os setores perenes da bolsa", xp: 100 },
+            { id: "in4_4", task: "Definir sua estratégia: Dividendos ou Crescimento?", xp: 120 },
+            { id: "in4_5", task: "Não olhar o home broker durante o pregão", xp: 150 },
+            { id: "in4_6", task: "Entender o que é o P/L e o DY de uma ação", xp: 80 }
+        ],
+        nivel5: [ // COTISTA
+            { id: "in5_1", task: "Estudar um relatório gerencial de FII", xp: 150 },
+            { id: "in5_2", task: "Comprar cotas de um fundo imobiliário", xp: 200 },
+            { id: "in5_3", task: "Diversificar o patrimônio em um novo setor", xp: 250 },
+            { id: "in5_4", task: "Calcular quanto falta para a independência financeira", xp: 100 },
+            { id: "in5_5", task: "Ignorar ruídos políticos sobre o mercado", xp: 200 },
+            { id: "in5_6", task: "Revisar a alocação de ativos da carteira", xp: 150 }
+        ],
+        nivel6: [ // ESPECULADOR
+            { id: "in6_1", task: "Estudar análise técnica ou gráfica por 30 min", xp: 200 },
+            { id: "in6_2", task: "Definir um Stop Loss para uma operação", xp: 250 },
+            { id: "in6_3", task: "Realizar uma operação de curto prazo consciente", xp: 300 },
+            { id: "in6_4", task: "Controlar o emocional após um loss (perda)", xp: 400 },
+            { id: "in6_5", task: "Ler sobre derivativos ou opções", xp: 150 },
+            { id: "in6_6", task: "Manter o diário de trades atualizado", xp: 180 }
+        ],
+        nivel7: [ // VISIONÁRIO
+            { id: "in7_1", task: "Estudar um novo mercado (Cripto, IA, ESG)", xp: 300 },
+            { id: "in7_2", task: "Investir em ativos fora do seu país (Dolarizar)", xp: 400 },
+            { id: "in7_3", task: "Identificar uma megatendência de consumo", xp: 350 },
+            { id: "in7_4", task: "Conversar com outro investidor sobre teses", xp: 200 },
+            { id: "in7_5", task: "Aumentar o aporte mensal através de nova renda", xp: 500 },
+            { id: "in7_6", task: "Ler sobre ciclos econômicos", xp: 250 }
+        ],
+        nivel8: [ // VENTURE
+            { id: "in8_1", task: "Avaliar o plano de negócios de uma startup", xp: 500 },
+            { id: "in8_2", task: "Investir em conhecimento de alto nível", xp: 600 },
+            { id: "in8_3", task: "Assumir um risco calculado de alto retorno", xp: 700 },
+            { id: "in8_4", task: "Mentorizar alguém que está começando a poupar", xp: 400 },
+            { id: "in8_5", task: "Analisar oportunidades no mercado privado", xp: 450 },
+            { id: "in8_6", task: "Praticar o desapego emocional do dinheiro", xp: 500 }
+        ],
+        nivel9: [ // INVESTIDOR
+            { id: "in9_1", task: "Ajustar a alocação para preservação de capital", xp: 800 },
+            { id: "in9_2", task: "Realizar um rebalanceamento técnico da carteira", xp: 600 },
+            { id: "in9_3", task: "Tomar uma decisão financeira estratégica de 10 anos", xp: 900 },
+            { id: "in9_4", task: "Operar com calma total em meio a um crash", xp: 1500 },
+            { id: "in9_5", task: "Estudar estruturas de holding ou sucessão", xp: 700 },
+            { id: "in9_6", task: "Manter a sobriedade diante de lucros atípicos", xp: 1000 }
+        ],
+        nivel10: [ // INDEPENDENTE
+            { id: "in10_1", task: "Alcançar a meta de patrimônio para viver de renda", xp: 5000 },
+            { id: "in10_2", task: "Possuir total soberania sobre o seu tempo", xp: 3000 },
+            { id: "in10_3", task: "Ser a fonte de capital para projetos inovadores", xp: 2000 },
+            { id: "in10_4", task: "Garantir a blindagem e perpetuidade do legado", xp: 2500 },
+            { id: "in10_5", task: "Influenciar o mercado com sua visão ética", xp: 1500 },
+            { id: "in10_6", task: "Manter o estado de espírito imperturbável", xp: 2000 }
+        ]
+    }
+};

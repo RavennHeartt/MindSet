@@ -1,0 +1,152 @@
+const militarEleData = {
+    setup: "militar_ele",
+    cor: "#2d3b2d",
+    ranks: [
+        "Recruta", "Soldado", "Cabo", "Sargento", "Tenente",
+        "Capitão", "Major", "Coronel", "General", "Marechal"
+    ],
+    quotes: [
+        "O suor no treinamento poupa o sangue no campo de batalha.",
+        "Missão dada é missão cumprida. Sem desculpas.",
+        "A disciplina é a alma de um exército. Torna pequenos grupos perigosos.",
+        "Quem não vive para servir, não serve para viver.",
+        "O medo é inevitável, a covardia é uma escolha.",
+        "Se você está atravessando o inferno, mantenha a marcha.",
+        "A ordem simplifica a vida; o caos a destrói.",
+        "O comando de si mesmo é a maior das vitórias.",
+        "Um soldado não recua, ele se reagrupa para um novo ataque.",
+        "Honra é o que você mantém quando perde tudo o resto.",
+        "Padrão é o que você faz quando ninguém está fiscalizando.",
+        "A dor é o psicológico saindo do corpo.",
+        "Vontade de preparar deve ser maior que a vontade de vencer.",
+        "Inspecione o que você espera. Detalhes vencem guerras.",
+        "A lealdade é um caminho de mão dupla; comece por baixo.",
+        "Nenhum plano sobrevive ao primeiro contato com o inimigo. Adapte-se.",
+        "Vença a si mesmo todas as manhãs ou será vencido pelo mundo.",
+        "Soldado que muito reclama, pouco executa.",
+        "A paciência tática é a chave para a vitória.",
+        "Mantenha sua arma limpa e sua mente afiada.",
+        "O cansaço é um estado mental; o corpo aguenta mais do que você imagina.",
+        "Não deixe para amanhã a trincheira que deve ser cavada hoje.",
+        "A palavra convence, o exemplo arrasta.",
+        "Camuflagem não é covardia, é inteligência operacional.",
+        "A sentinela que dorme trai o seu batalhão.",
+        "Saiba obedecer para um dia saber comandar.",
+        "O rigor com o padrão evita a falha na missão.",
+        "Liderar é assumir a culpa e dividir a glória.",
+        "A moral elevada é metade da vitória conquistada.",
+        "O soldado que não tem iniciativa é um fardo para a unidade.",
+        "Seja rápido como o vento e firme como a montanha.",
+        "A surpresa é a arma mais poderosa do estrategista.",
+        "Conheça o seu terreno e conhecerá o seu destino.",
+        "Unidade dividida é alvo fácil. Mantenha o seu clã unido.",
+        "A economia de forças é a base da logística vitoriosa.",
+        "Não desperdice munição com alvos inúteis.",
+        "O silêncio operacional é a melhor defesa contra a espionagem.",
+        "A disciplina mental precede a eficácia balística.",
+        "Seja o primeiro na linha de frente e o último na retirada.",
+        "Um exército marcha sobre o seu estômago; cuide das suas bases.",
+        "A inteligência vence batalhas, a logística vence guerras.",
+        "Mantenha a calma sob fogo cruzado.",
+        "A decisão rápida é melhor que a hesitação perfeita.",
+        "Quem quer tudo, nada segura. Foque no objetivo principal.",
+        "A vitória pertence aos que perseveram mais tempo.",
+        "Brasil acima de tudo; o dever acima de todos.",
+        "A farda não faz o soldado, mas o soldado honra a farda.",
+        "Sê herdeiro de uma história de glória, não a manche.",
+        "A fraternidade de armas é o vínculo mais forte entre homens.",
+        "Morrer com honra é melhor que viver na infâmia.",
+        "A retidão de caráter é o seu maior calibre.",
+        "O inimigo mais perigoso está dentro do seu próprio espelho.",
+        "Mantenha a verticalidade moral em qualquer circunstância.",
+        "O sacrifício individual é o alicerce da liberdade coletiva.",
+        "Um oficial é, acima de tudo, um educador de homens.",
+        "A tradição é a chama, não as cinzas.",
+        "Seja um baluarte de ordem em um mundo de anarquia.",
+        "A integridade é o norte da bússola do marechal.",
+        "A glória é fugaz, mas a honra é eterna.",
+        "Cumpra a missão, custe o que custar."
+    ],
+    habitos: {
+        nivel1: [ // RECRUTA
+            { id: "mi1_1", task: "Alvorada: Acordar no primeiro toque do alarme", xp: 50 },
+            { id: "mi1_2", task: "TFM: Realizar 10 minutos de caminhada firme", xp: 40 },
+            { id: "mi1_3", task: "Alojamento: Cama esticada e sapatos alinhados", xp: 30 },
+            { id: "mi1_4", task: "Apresentação: Barba feita e cabelo penteado", xp: 30 },
+            { id: "mi1_5", task: "Higiene: Banho rápido e eficiente", xp: 40 },
+            { id: "mi1_6", task: "Zero atrasos em todos os compromissos", xp: 60 }
+        ],
+        nivel2: [ // SOLDADO
+            { id: "mi2_1", task: "Manutenção: Organizar sua mesa ou área de trabalho", xp: 40 },
+            { id: "mi2_2", task: "Disciplina: Zero celular durante o trabalho/estudo", xp: 70 },
+            { id: "mi2_3", task: "Resistência: 15 minutos de exercício físico constante", xp: 60 },
+            { id: "mi2_4", task: "Doutrina: Estudar 15 min sobre história ou tática", xp: 50 },
+            { id: "mi2_5", task: "Postura: Coluna vertical e olhar no horizonte", xp: 40 },
+            { id: "mi2_6", task: "Cumprimentar as pessoas com voz firme", xp: 50 }
+        ],
+        nivel3: [ // CABO
+            { id: "mi3_1", task: "Intendência: Organizar o estoque/despensa da casa", xp: 60 },
+            { id: "mi3_2", task: "Vigília: Checar segurança de todas as entradas", xp: 40 },
+            { id: "mi3_3", task: "TFM: 20 minutos de atividade física aeróbica", xp: 80 },
+            { id: "mi3_4", task: "Foco: Concluir 3 tarefas sem interrupções", xp: 100 },
+            { id: "mi3_5", task: "Comunicação: Relatar progressos de forma breve", xp: 50 },
+            { id: "mi3_6", task: "Zero reclamações por 24 horas", xp: 90 }
+        ],
+        nivel4: [ // SARGENTO
+            { id: "mi4_1", task: "Liderança: Ensinar um padrão a outra pessoa", xp: 150 },
+            { id: "mi4_2", task: "Operação: Limpar profundamente uma área comum", xp: 100 },
+            { id: "mi4_3", task: "Estudo: Ler 30 min sobre liderança militar", xp: 80 },
+            { id: "mi4_4", task: "Vontade: Banho gelado (Temperar o espírito)", xp: 120 },
+            { id: "mi4_5", task: "Logística: Preparar todo o material de amanhã hoje", xp: 60 },
+            { id: "mi4_6", task: "Conduta: Ser o exemplo de calma sob estresse", xp: 150 }
+        ],
+        nivel5: [ // TENENTE
+            { id: "mi5_1", task: "Missão: Planejar e executar um projeto difícil", xp: 250 },
+            { id: "mi5_2", task: "Iniciativa: Resolver um problema sem receber ordens", xp: 200 },
+            { id: "mi5_3", task: "Tática: Dizer 'não' para o que atrasa a missão", xp: 150 },
+            { id: "mi5_4", task: "Saúde: Alimentação estrita (Zero açúcar/ultraprocessados)", xp: 100 },
+            { id: "mi5_5", task: "Análise: Revisar falhas do dia com honestidade", xp: 120 },
+            { id: "mi5_6", task: "Moral: Incentivar o seu 'pelotão' (família/amigos)", xp: 180 }
+        ],
+        nivel6: [ // CAPITÃO
+            { id: "mi6_1", task: "Comando: Liderar uma reunião ou conversa objetiva", xp: 300 },
+            { id: "mi6_2", task: "Estratégia: Definir metas SMART para o mês", xp: 200 },
+            { id: "mi6_3", task: "Firmeza: Ter uma conversa difícil sem recuar", xp: 250 },
+            { id: "mi6_4", task: "Resiliência: 30 minutos de treino físico intenso", xp: 200 },
+            { id: "mi6_5", task: "Administração: Otimizar o tempo de uma tarefa", xp: 150 },
+            { id: "mi6_6", task: "Honra: Cumprir promessa mesmo com prejuízo", xp: 400 }
+        ],
+        nivel7: [ // MAJOR
+            { id: "mi7_1", task: "Logística: Gerir o orçamento com rigor absoluto", xp: 400 },
+            { id: "mi7_2", task: "Planejamento: Escrever plano de ação trimestral", xp: 350 },
+            { id: "mi7_3", task: "Delegação: Passar tarefa e cobrar o padrão", xp: 200 },
+            { id: "mi7_4", task: "Visão: Antecipar um problema antes dele ocorrer", xp: 300 },
+            { id: "mi7_5", task: "Cultura: Reforçar os valores da sua unidade", xp: 150 },
+            { id: "mi7_6", task: "Foco: 4 horas de Deep Work ininterrupto", xp: 300 }
+        ],
+        nivel8: [ // CORONEL
+            { id: "mi8_1", task: "Autoridade: Tomar decisão de alto risco e impacto", xp: 600 },
+            { id: "mi8_2", task: "Networking: Aliança estratégica com outros líderes", xp: 400 },
+            { id: "mi8_3", task: "Patrimônio: Blindar as finanças do seu clã", xp: 500 },
+            { id: "mi8_4", task: "Influência: Mentorar alguém promissor", xp: 350 },
+            { id: "mi8_5", task: "Estratégia: Estudar táticas de grandes generais", xp: 300 },
+            { id: "mi8_6", task: "Dignidade: Manter a sua imagem/farda impecável", xp: 200 }
+        ],
+        nivel9: [ // GENERAL
+            { id: "mi9_1", task: "Governança: Gerir múltiplos projetos simultâneos", xp: 700 },
+            { id: "mi9_2", task: "Poder: Executar mudança drástica e necessária", xp: 900 },
+            { id: "mi9_3", task: "Legado: Definir a visão de 5 anos da linhagem", xp: 600 },
+            { id: "mi9_4", task: "Calma: Paz absoluta em meio ao caos total", xp: 1000 },
+            { id: "mi9_5", task: "Justiça: Premiar o mérito e corrigir a falha", xp: 500 },
+            { id: "mi9_6", task: "Presença: Ser a referência máxima de conduta", xp: 800 }
+        ],
+        nivel10: [ // MARECHAL
+            { id: "mi10_1", task: "Conquista: Finalizar a missão mestre do ano", xp: 2000 },
+            { id: "mi10_2", task: "Maestria: Domínio total sobre o próprio tempo", xp: 1200 },
+            { id: "mi10_3", task: "Exemplo: Ser citado como referência de ordem", xp: 1000 },
+            { id: "mi10_4", task: "Sucessão: Garantir que seus valores sobrevivam", xp: 1500 },
+            { id: "mi10_5", task: "Poder: Agir com soberania e benevolência", xp: 1300 },
+            { id: "mi10_6", task: "Eternidade: Consolidar o legado do Marechal", xp: 1800 }
+        ]
+    }
+};
