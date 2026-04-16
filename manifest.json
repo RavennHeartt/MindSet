@@ -1,21 +1,16 @@
 {
-  "short_name": "MindSet",
-  "name": "MindSet",
-  "icons": [
-    {
-      "src": "assets/icone-ios.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "assets/icone-ios.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
+  "short_name": "Mindset",
+  "name": "Mindset",
   "start_url": "index.html",
   "background_color": "#000000",
+  "theme_color": "#000000",
   "display": "standalone",
-  "scope": "/",
-  "theme_color": "#007bff"
+  "icons": [
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
