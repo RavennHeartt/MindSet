@@ -1,0 +1,243 @@
+/* MINDSET HUD - CSS CORE v1.1 
+   Estética High-Tech com Cores Dinâmicas
+*/
+
+:root {
+    --bg-base: #000000;
+    --card-bg: rgba(255, 255, 255, 0.04);
+    --accent: #007bff; /* Cor principal definida pelo JS */
+    --warning: #ff9500;
+    --danger: #ff3b3b;
+    --menu-bg: rgba(10, 10, 10, 0.98);
+    --text-main: #ffffff;
+    --text-dim: #555555;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body, html {
+    margin: 0; padding: 0; height: 100%;
+    color: var(--text-main); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-base); overflow-x: hidden;
+}
+
+/* --- CABEÇALHO (HUD) --- */
+.hud-header { padding: 60px 25px 30px; position: relative; }
+
+.menu-btn { 
+    position: absolute; top: 60px; right: 25px; 
+    background: none; border: none; color: #fff; 
+    font-size: 1.8rem; z-index: 200; cursor: pointer; 
+}
+
+.rank-badge { 
+    display: inline-block; font-size: 0.7rem; font-weight: 900; 
+    letter-spacing: 3px; color: var(--accent); 
+    text-transform: uppercase; margin-bottom: 8px; 
+}
+
+.user-meta h1 { margin: 0; font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; }
+
+/* Barra de XP */
+.xp-container { margin-top: 20px; display: flex; align-items: center; gap: 12px; }
+.xp-bar-wrapper { 
+    flex: 1; height: 8px; background: #151515; 
+    border-radius: 10px; overflow: hidden; 
+    border: 1px solid rgba(255,255,255,0.05); 
+}
+.xp-fill { 
+    height: 100%; background: var(--accent); width: 0%; 
+    transition: 1s cubic-bezier(0.2, 0.8, 0.2, 1); 
+    box-shadow: 0 0 15px var(--accent); 
+}
+#level-display { font-weight: 900; font-size: 0.8rem; color: var(--text-dim); }
+
+/* --- CONTEÚDO --- */
+.content-section { display: none; padding: 0 25px 120px; animation: fadeIn 0.5s ease; }
+.content-section.active { display: block; }
+
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(15px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+.daily-quote { 
+    background: var(--card-bg); padding: 35px 25px; border-radius: 24px; 
+    text-align: center; margin: 25px 0; border: 1px solid rgba(255,255,255,0.06); 
+}
+#quote-text { font-style: italic; color: #ccc; line-height: 1.6; font-size: 1.05rem; margin: 0; }
+
+.section-title { 
+    font-size: 0.75rem; font-weight: 900; color: #444; 
+    letter-spacing: 2px; margin: 30px 0 15px; text-transform: uppercase; 
+}
+
+/* --- LISTA DE MISSÕES (DESTAQUE COM COR DO TEMA) --- */
+.task-list { display: flex; flex-direction: column; gap: 14px; }
+.task-item {
+    background: var(--card-bg); padding: 24px; border-radius: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid rgba(255,255,255,0.03); transition: 0.3s;
+}
+.task-item.completed { 
+    background: rgba(255, 255, 255, 0.02); 
+    border-color: var(--accent); 
+    opacity: 0.8;
+}
+.task-item strong { font-size: 1.1rem; letter-spacing: -0.5px; }
+.task-item small { color: var(--accent); font-weight: 900; font-size: 0.7rem; }
+
+.btn-check { 
+    width: 38px; height: 38px; border-radius: 12px; 
+    border: 2px solid #333; background: none; 
+    transition: 0.3s; cursor: pointer;
+}
+/* Missão completa brilha com a cor do TEMA */
+.task-item.completed .btn-check { 
+    background: var(--accent); 
+    border-color: var(--accent); 
+    box-shadow: 0 0 20px var(--accent);
+}
+
+/* --- CALENDÁRIO INTERATIVO (DESTAQUE COM COR DO TEMA) --- */
+.calendar-card { 
+    background: var(--card-bg); border-radius: 28px; padding: 25px; 
+    border: 1px solid rgba(255,255,255,0.05); 
+}
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.calendar-header h4 { font-weight: 900; letter-spacing: 1px; font-size: 1.1rem; margin: 0; }
+.calendar-header button { 
+    background: #111; border: 1px solid #222; color: #fff; 
+    border-radius: 12px; width: 44px; height: 44px; font-size: 1.2rem; cursor: pointer;
+}
+
+.calendar-weekdays { 
+    display: grid; grid-template-columns: repeat(7, 1fr); 
+    text-align: center; font-size: 0.7rem; color: #444; 
+    margin-bottom: 15px; font-weight: 900; 
+}
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+
+.calendar-day { 
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center; 
+    font-size: 0.9rem; border-radius: 14px; font-weight: bold; color: #222; 
+    transition: 0.2s; position: relative;
+}
+.calendar-day.clickable { color: #fff; background: rgba(255,255,255,0.03); cursor: pointer; }
+
+/* Dia com Vitória (Streak) brilha com a cor do TEMA */
+.calendar-day.completed { 
+    background: var(--accent) !important; 
+    color: #ffffff !important; 
+    box-shadow: 0 0 15px var(--accent); 
+}
+.calendar-day.today { border: 2px solid var(--accent); color: var(--accent); }
+.calendar-day.clickable:active { transform: scale(0.9); background: var(--accent); color: #fff; }
+
+/* Detalhe do Dia */
+.day-detail-container { 
+    margin-top: 25px; padding: 25px; background: rgba(255,255,255,0.02); 
+    border-radius: 22px; border: 1px solid rgba(255,255,255,0.05); 
+    display: none; animation: fadeIn 0.3s ease;
+}
+.history-task { 
+    display: flex; align-items: center; gap: 12px; padding: 12px 0; 
+    border-bottom: 1px solid rgba(255,255,255,0.03); 
+}
+
+/* --- ABA APOIO (CONTRIBUTE) --- */
+.contribute-card { 
+    background: var(--card-bg); padding: 40px 25px; 
+    border-radius: 30px; text-align: center; 
+    border: 1px solid rgba(255,255,255,0.06); 
+}
+.icon-coffee { 
+    font-size: 3rem; margin-bottom: 20px; display: block; 
+}
+.pix-box { 
+    background: #080808; padding: 25px; border-radius: 20px; 
+    border: 1px solid #151515; margin-top: 25px; 
+}
+.pix-box code { 
+    display: block; margin: 15px 0; color: var(--accent); 
+    font-family: monospace; font-size: 0.85rem; 
+    word-break: break-all; opacity: 0.8; 
+}
+.btn-copy { 
+    background: var(--accent); border: none; color: #fff; 
+    padding: 12px; border-radius: 10px; font-weight: 900; 
+    font-size: 0.8rem; cursor: pointer; width: 100%; 
+}
+
+/* --- MENU LATERAL --- */
+.side-menu {
+    position: fixed; top: 0; left: -100%; width: 100%; height: 100%;
+    background: var(--menu-bg); z-index: 3000; 
+    transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 70px 30px; box-sizing: border-box; 
+    backdrop-filter: blur(20px);
+}
+.side-menu.active { left: 0; }
+
+.menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
+.menu-header h3 { letter-spacing: 4px; font-size: 0.9rem; color: #444; margin: 0; }
+
+.close-menu-btn { 
+    background: #1a1a1a; border: none; color: #fff; 
+    width: 55px; height: 55px; border-radius: 18px; 
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+.menu-links { list-style: none; padding: 0; margin: 0; }
+.menu-links li { 
+    padding: 22px 25px; border-radius: 22px; margin-bottom: 12px; 
+    background: rgba(255,255,255,0.03);
+    display: flex; align-items: center; font-weight: 900; 
+    font-size: 1rem; cursor: pointer; transition: 0.3s;
+}
+.menu-links li:active { background: rgba(255,255,255,0.08); transform: translateX(10px); }
+.menu-icon { margin-right: 20px; font-size: 1.3rem; }
+
+/* BOTÃO DE RESET (PERIGO) */
+.menu-links li.reset-link {
+    margin-top: 40px !important;
+    background: rgba(255, 59, 59, 0.05) !important;
+    border: 1px solid rgba(255, 59, 59, 0.2) !important;
+    color: #ff5555 !important;
+}
+.menu-links li.reset-link .menu-icon { filter: drop-shadow(0 0 5px #ff3b3b); }
+
+.menu-footer { 
+    position: absolute; bottom: 30px; left: 0; width: 100%; 
+    text-align: center; font-size: 0.65rem; color: #222; 
+    letter-spacing: 3px; font-weight: 900; 
+}
+
+/* --- RODAPÉ --- */
+.hud-footer { position: fixed; bottom: 40px; width: 100%; display: flex; justify-content: center; z-index: 500; }
+.streak-pill { 
+    background: #000; padding: 16px 40px; border-radius: 50px; 
+    border: 1px solid #222; font-weight: 900; 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.8); 
+}
+
+/* --- MODAL --- */
+.modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.95); display: none; 
+    align-items: center; justify-content: center; 
+    z-index: 5000; backdrop-filter: blur(10px); 
+}
+.modal-content { 
+    background: #111; padding: 40px; border-radius: 32px; 
+    width: 85%; max-width: 350px; text-align: center; 
+    border: 1px solid #222; 
+}
+.btn-modal { 
+    background: var(--text-main); color: #000; 
+    padding: 16px; border-radius: 14px; border: none; 
+    font-weight: 900; cursor: pointer; width: 100%; 
+}
