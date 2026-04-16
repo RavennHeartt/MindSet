@@ -1,0 +1,21 @@
+{
+  "short_name": "MindSet",
+  "name": "MindSet",
+  "icons": [
+    {
+      "src": "assets/icone-ios.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "assets/icone-ios.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#000000",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#007bff"
+}

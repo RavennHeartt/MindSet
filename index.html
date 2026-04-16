@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MindSet | Inicialização</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="apple-touch-icon" href="assets/icone-ios.png">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<meta name="apple-mobile-web-app-title" content="MindSet">
+
+</head>
+<body id="main-body">
+
+    <section id="step-welcome" class="screen active">
+        <div class="form-container" style="text-align: center;">
+            <h1 class="logo">MindSet</h1>
+            <p class="welcome-text">
+                Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.
+            </p>
+            <button class="btn-main" onclick="startOnboarding()">COMEÇAR</button>
+        </div>
+    </section>
+
+    <section id="step-registration" class="screen">
+        <div class="form-container">
+            <h1 class="logo" style="font-size: 2rem; margin-bottom: 20px;">MindSet</h1>
+            
+            <div class="input-group" id="group-name">
+                <label>COMO DEVEMOS TE CHAMAR?</label>
+                <input type="text" id="user-name" placeholder="Digite seu nome ou apelido...">
+            </div>
+
+            <div class="input-group" id="group-gender">
+                <label>GÊNERO</label>
+                <div class="gender-toggle-wrapper">
+                    <input type="checkbox" id="gender-toggle" hidden>
+                    <div class="toggle-pill"></div>
+                    <label for="gender-toggle" class="gender-btn btn-ele">ELE</label>
+                    <label for="gender-toggle" class="gender-btn btn-ela">ELA</label>
+                </div>
+            </div>
+
+            <div class="input-group" id="group-age">
+                <label>IDADE</label>
+                <div class="age-selector-container">
+                    <div class="age-selection-marker"></div>
+                    <div class="age-carousel-track" id="age-carousel-track">
+                        </div>
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="nextStep()">AVANÇAR</button>
+        </div>
+    </section>
+
+    <section id="step-carousel" class="screen">
+        <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
+
+        <div class="carousel-header">
+            <span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:
+        </div>
+        
+        <div class="carousel-wrapper">
+            <div class="carousel-container" id="carousel-list"></div>
+        </div>
+
+        <div class="carousel-footer">
+            <p style="font-size: 0.7rem; opacity: 0.5; margin-bottom: 15px;">DESLIZE PARA OS LADOS</p>
+            <button class="btn-confirm" onclick="confirmSelection()">INICIAR MINDSET</button>
+        </div>
+    </section>
+
+    <div id="spotlight-overlay" class="spotlight-overlay"></div>
+
+    <div id="demo-overlay" class="demo-overlay"></div>
+
+    <div id="demo-guide" class="demo-guide"></div>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title">AVISO</h3>
+            <p id="modal-message">Mensagem aqui.</p>
+            <div id="modal-buttons" class="modal-buttons">
+                </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log("MindSet pronto para uso offline!"))
+      .catch(err => console.log("Erro no SW:", err));
+  }
+</script>
+
+</body>
+</html>

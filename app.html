@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MindSet | HUD</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body id="app-body">
+
+    <nav id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <h3>SISTEMA</h3>
+            <button class="close-menu-btn" onclick="toggleMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <ul class="menu-links">
+            <li onclick="showSection('tasks')">
+                <span class="menu-icon">📑</span> MISSÕES DIÁRIAS
+            </li>
+            <li onclick="showSection('history')">
+                <span class="menu-icon">📅</span> CALENDÁRIO
+            </li>
+            <li onclick="showSection('contribute')">
+                <span class="menu-icon">☕</span> APOIAR PROJETO
+            </li>
+            <li onclick="confirmReset()" class="reset-link">
+                <span class="menu-icon">⚠️</span> RESETAR MINDSET
+            </li>
+        </ul>
+        <div class="menu-footer">MINDSET v1.0 BETA</div>
+    </nav>
+
+    <header class="hud-header">
+        <button class="menu-btn" onclick="toggleMenu()">☰</button>
+        <div class="user-meta">
+            <span id="user-rank" class="rank-badge">CARREGANDO...</span>
+            <h1 id="user-name-display">USUÁRIO</h1>
+        </div>
+        <div class="xp-container">
+            <div class="xp-bar-wrapper">
+                <div id="xp-fill" class="xp-fill"></div>
+            </div>
+            <span id="level-display">LVL 1</span>
+        </div>
+    </header>
+
+    <main class="hud-main">
+        <div id="section-tasks" class="content-section active">
+            <section class="daily-quote">
+                <p id="quote-text">"Carregando sabedoria..."</p>
+            </section>
+            <h2 class="section-title">MISSÕES DE HOJE</h2>
+            <div id="task-list" class="task-list"></div>
+        </div>
+
+        <div id="section-history" class="content-section">
+            <h2 class="section-title">HISTÓRICO DE VITÓRIAS</h2>
+            <div class="calendar-card" id="calendar-touch-zone">
+                <div class="calendar-header">
+                    <button onclick="changeMonth(-1)">❮</button>
+                    <h4 id="calendar-month-year">Mês Ano</h4>
+                    <button onclick="changeMonth(1)">❯</button>
+                </div>
+                <div class="calendar-weekdays">
+                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+                </div>
+                <div id="calendar-days" class="calendar-grid"></div>
+            </div>
+            <div id="day-detail-container" class="day-detail-container"></div>
+        </div>
+
+        <div id="section-contribute" class="content-section">
+            <h2 class="section-title">APOIE O DESENVOLVEDOR</h2>
+            <div class="contribute-card">
+                <div class="icon-coffee">☕</div>
+                <h3>Desenvolvimento Independente</h3>
+                <p>Este app é focado na sua evolução. Se o MindSet está te ajudando, considere uma contribuição para manter o sistema online.</p>
+                <div class="pix-box">
+                    <small>CHAVE PIX (CHAVE ALEATORIA)</small>
+                    <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
+                    <button class="btn-copy" onclick="copyPix()">COPIAR CHAVE PIX</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="hud-footer">
+        <div class="streak-pill">🔥 <span id="streak-count">0</span> DIAS</div>
+    </footer>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title">AVISO</h3>
+            <p id="modal-message"></p>
+            <div id="modal-buttons" class="modal-buttons"></div>
+        </div>
+    </div>
+
+    <script src="js/setups/patriarca.js"></script>
+    <script src="js/setups/matriarca.js"></script>
+    <script src="js/setups/cavalheiro.js"></script>
+    <script src="js/setups/dama.js"></script>
+    <script src="js/setups/devoto.js"></script>
+    <script src="js/setups/devota.js"></script>
+    <script src="js/setups/ceo_ele.js"></script>
+    <script src="js/setups/ceo_ela.js"></script>
+    <script src="js/setups/militar_ele.js"></script>
+    <script src="js/setups/militar_ela.js"></script>
+    <script src="js/setups/investidor.js"></script>
+    <script src="js/setups/investidora.js"></script>
+    <script src="js/setups/atleta_ele.js"></script>
+    <script src="js/setups/atleta_ela.js"></script>
+    <script src="js/setups/zen.js"></script>
+    <script src="js/setups/estrategista.js"></script>
+    <script src="js/setups/minimalista.js"></script>
+    
+    <script src="js/app.js"></script>
+</body>
+</html>
