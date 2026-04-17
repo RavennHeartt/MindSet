@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MindSet | HUD</title>
-    <link rel="stylesheet" href="css/app.css">
+    <title>MindSet | Sistema</title>
+    <link rel="stylesheet" href="css/main.css">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -12,120 +15,102 @@
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
+          serviceWorkerParam: { scope: "/" },
+          serviceWorkerPath: "OneSignalSDKWorker.js",
         });
       });
     </script>
 </head>
 <body id="app-body">
 
-    <nav id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <h3>SISTEMA</h3>
-            <button class="close-menu-btn" onclick="toggleMenu()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+    <header class="app-header">
+        <div class="user-info">
+            <span id="user-name-display">USUÁRIO</span>
+            <small id="user-rank">INICIANTE</small>
         </div>
-        <ul class="menu-links">
-            <li onclick="showSection('tasks')">
-                <span class="menu-icon">📑</span> MISSÕES DIÁRIAS
-            </li>
-            <li onclick="showSection('history')">
-                <span class="menu-icon">📅</span> CALENDÁRIO
-            </li>
-            <li onclick="showSection('contribute')">
-                <span class="menu-icon">☕</span> APOIAR PROJETO
-            </li>
-            <li onclick="confirmReset()" class="reset-link">
-                <span class="menu-icon">⚠️</span> RESETAR MINDSET
-            </li>
-        </ul>
-        <div class="menu-footer">MINDSET v1.0 BETA</div>
-    </nav>
-
-    <header class="hud-header">
-        <button class="menu-btn" onclick="toggleMenu()">☰</button>
-        <div class="user-meta">
-            <span id="user-rank" class="rank-badge">CARREGANDO...</span>
-            <h1 id="user-name-display">USUÁRIO</h1>
-        </div>
-        <div class="xp-container">
-            <div class="xp-bar-wrapper">
-                <div id="xp-fill" class="xp-fill"></div>
-            </div>
-            <span id="level-display">LVL 1</span>
-        </div>
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
     </header>
 
-    <main class="hud-main">
-        <div id="section-tasks" class="content-section active">
-            <section class="daily-quote">
-                <p id="quote-text">"Carregando sabedoria..."</p>
-            </section>
-            <h2 class="section-title">MISSÕES DE HOJE</h2>
-            <div id="task-list" class="task-list"></div>
+    <div class="xp-container">
+        <div class="xp-bar">
+            <div id="xp-fill" class="xp-fill" style="width: 0%;"></div>
+        </div>
+        <div class="xp-labels">
+            <span id="level-display">LVL 1</span>
+            <span id="streak-display">🔥 <span id="streak-count">0</span> DIAS</span>
+        </div>
+    </div>
+
+    <section id="section-home" class="content-section active">
+        <div class="quote-container">
+            <p id="quote-text">"A disciplina é a alma da liberdade."</p>
         </div>
 
-        <div id="section-history" class="content-section">
-            <h2 class="section-title">HISTÓRICO DE VITÓRIAS</h2>
-            <div class="calendar-card" id="calendar-touch-zone">
-                <div class="calendar-header">
-                    <button onclick="changeMonth(-1)">❮</button>
-                    <h4 id="calendar-month-year">Mês Ano</h4>
-                    <button onclick="changeMonth(1)">❯</button>
-                </div>
-                <div class="calendar-weekdays">
-                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-                </div>
-                <div id="calendar-days" class="calendar-grid"></div>
+        <h3 class="section-title">MISSÕES DE HOJE</h3>
+        <div id="task-list" class="task-list">
             </div>
-            <div id="day-detail-container" class="day-detail-container"></div>
+    </section>
+
+    <section id="section-history" class="content-section">
+        <h3 class="section-title">HISTÓRICO DE VITÓRIAS</h3>
+        
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">❮</button>
+                <span id="calendar-month-year">MÊS 202X</span>
+                <button onclick="changeMonth(1)">❯</button>
+            </div>
+            <div class="calendar-weekdays">
+                <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+            </div>
+            <div id="calendar-days" class="calendar-grid"></div>
         </div>
 
-        <div id="section-contribute" class="content-section">
-            <h2 class="section-title">APOIE O DESENVOLVEDOR</h2>
-            <div class="contribute-card">
-                <div class="icon-coffee">☕</div>
-                <h3>Desenvolvimento Independente</h3>
-                <p>Este app é focado na sua evolução. Se o MindSet está te ajudando, considere uma contribuição para manter o sistema online.</p>
-                <div class="pix-box">
-                    <small>CHAVE PIX (CHAVE ALEATORIA)</small>
-                    <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
-                    <button class="btn-copy" onclick="copyPix()">COPIAR CHAVE PIX</button>
-                </div>
+        <div id="day-detail-container" class="day-detail-container" style="display:none;">
+            </div>
+    </section>
+
+    <section id="section-support" class="content-section">
+        <h3 class="section-title">APOIE O PROJETO</h3>
+        <div class="form-container" style="background: rgba(255,255,255,0.05);">
+            <p style="font-size: 0.9rem; margin-bottom: 20px;">
+                Mantenha o MindSet vivo e ajude-nos a criar novos setups e funcionalidades.
+            </p>
+            <div class="pix-box" onclick="copyPix()">
+                <small>CHAVE PIX (CNPJ)</small>
+                <div id="pix-key" style="font-weight: bold; color: var(--accent);">00.000.000/0001-00</div>
+                <small style="opacity: 0.5;">Toque para copiar</small>
             </div>
         </div>
-    </main>
+    </section>
 
-    <footer class="hud-footer">
-        <div class="streak-pill">🔥 <span id="streak-count">0</span> DIAS</div>
-    </footer>
+    <nav id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <h2 class="logo">MindSet</h2>
+            <button class="btn-close" onclick="toggleMenu()">✕</button>
+        </div>
+        <div class="menu-links">
+            <a href="#" onclick="showSection('home')">MISSÕES</a>
+            <a href="#" onclick="showSection('history')">CALENDÁRIO</a>
+            <a href="#" onclick="showSection('support')">APOIAR</a>
+            <hr style="opacity: 0.1; margin: 20px 0;">
+            <a href="#" onclick="confirmReset()" style="color: #ff3b3b;">REINICIAR TUDO</a>
+        </div>
+    </nav>
 
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title">AVISO</h3>
-            <p id="modal-message"></p>
+            <p id="modal-message">Mensagem aqui.</p>
             <div id="modal-buttons" class="modal-buttons"></div>
         </div>
     </div>
 
     <script src="js/setups/patriarca.js"></script>
-    <script src="js/setups/matriarca.js"></script>
-    <script src="js/setups/cavalheiro.js"></script>
-    <script src="js/setups/dama.js"></script>
-    <script src="js/setups/devoto.js"></script>
-    <script src="js/setups/devota.js"></script>
-    <script src="js/setups/ceo_ele.js"></script>
-    <script src="js/setups/ceo_ela.js"></script>
-    <script src="js/setups/militar_ele.js"></script>
-    <script src="js/setups/militar_ela.js"></script>
     <script src="js/setups/investidor.js"></script>
-    <script src="js/setups/investidora.js"></script>
-    <script src="js/setups/atleta_ele.js"></script>
-    <script src="js/setups/atleta_ela.js"></script>
+    <script src="js/setups/militar.js"></script>
+    <script src="js/setups/ceo.js"></script>
     <script src="js/setups/zen.js"></script>
     <script src="js/setups/estrategista.js"></script>
-    <script src="js/setups/minimalista.js"></script>
-    
-    <script src="js/app.js"></script>
-</body>
+    <script src="js/notifications.js"></script> <script src="js/app.js"></script>           </body>
 </html>
