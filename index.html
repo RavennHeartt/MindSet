@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MindSet</title>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
-    });
-  });
-</script>
+    <title>MindSet | Inicialização</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MindSet">
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-<meta name="apple-mobile-web-app-title" content="MindSet">
-
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
+        });
+        // Força a exibição do pedido de notificação
+        OneSignal.Notifications.showSlidedownPrompt();
+      });
+    </script>
 </head>
 <body id="main-body">
 
@@ -58,8 +57,7 @@
                 <label>IDADE</label>
                 <div class="age-selector-container">
                     <div class="age-selection-marker"></div>
-                    <div class="age-carousel-track" id="age-carousel-track">
-                        </div>
+                    <div class="age-carousel-track" id="age-carousel-track"></div>
                 </div>
             </div>
 
@@ -69,15 +67,12 @@
 
     <section id="step-carousel" class="screen">
         <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
-
         <div class="carousel-header">
             <span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:
         </div>
-        
         <div class="carousel-wrapper">
             <div class="carousel-container" id="carousel-list"></div>
         </div>
-
         <div class="carousel-footer">
             <p style="font-size: 0.7rem; opacity: 0.5; margin-bottom: 15px;">DESLIZE PARA OS LADOS</p>
             <button class="btn-confirm" onclick="confirmSelection()">INICIAR MINDSET</button>
@@ -85,28 +80,24 @@
     </section>
 
     <div id="spotlight-overlay" class="spotlight-overlay"></div>
-
     <div id="demo-overlay" class="demo-overlay"></div>
-
     <div id="demo-guide" class="demo-guide"></div>
 
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title">AVISO</h3>
             <p id="modal-message">Mensagem aqui.</p>
-            <div id="modal-buttons" class="modal-buttons">
-                </div>
+            <div id="modal-buttons" class="modal-buttons"></div>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log("MindSet pronto para uso offline!"))
-      .catch(err => console.log("Erro no SW:", err));
-  }
-</script>
-
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log("MindSet pronto para uso offline!"))
+          .catch(err => console.log("Erro no SW:", err));
+      }
+    </script>
 </body>
 </html>
