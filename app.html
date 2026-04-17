@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MindSet | Sistema</title>
+    <title>MindSet | HUD</title>
     <link rel="stylesheet" href="css/main.css">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+    <meta name="apple-mobile-web-app-title" content="MindSet">
+
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -25,8 +26,8 @@
 
     <header class="app-header">
         <div class="user-info">
-            <span id="user-name-display">USUÁRIO</span>
-            <small id="user-rank">INICIANTE</small>
+            <span id="user-name-display">CARREGANDO...</span>
+            <small id="user-rank">---</small>
         </div>
         <div class="menu-icon" onclick="toggleMenu()">☰</div>
     </header>
@@ -36,14 +37,14 @@
             <div id="xp-fill" class="xp-fill" style="width: 0%;"></div>
         </div>
         <div class="xp-labels">
-            <span id="level-display">LVL 1</span>
+            <span id="level-display">LVL 0</span>
             <span id="streak-display">🔥 <span id="streak-count">0</span> DIAS</span>
         </div>
     </div>
 
     <section id="section-home" class="content-section active">
         <div class="quote-container">
-            <p id="quote-text">"A disciplina é a alma da liberdade."</p>
+            <p id="quote-text">"Carregando sua mentalidade..."</p>
         </div>
 
         <h3 class="section-title">MISSÕES DE HOJE</h3>
@@ -52,12 +53,12 @@
     </section>
 
     <section id="section-history" class="content-section">
-        <h3 class="section-title">HISTÓRICO DE VITÓRIAS</h3>
+        <h3 class="section-title">REGISTO DE EVOLUÇÃO</h3>
         
         <div class="calendar-container">
             <div class="calendar-header">
                 <button onclick="changeMonth(-1)">❮</button>
-                <span id="calendar-month-year">MÊS 202X</span>
+                <span id="calendar-month-year">...</span>
                 <button onclick="changeMonth(1)">❯</button>
             </div>
             <div class="calendar-weekdays">
@@ -71,15 +72,15 @@
     </section>
 
     <section id="section-support" class="content-section">
-        <h3 class="section-title">APOIE O PROJETO</h3>
+        <h3 class="section-title">EXPANDIR PROJETO</h3>
         <div class="form-container" style="background: rgba(255,255,255,0.05);">
             <p style="font-size: 0.9rem; margin-bottom: 20px;">
-                Mantenha o MindSet vivo e ajude-nos a criar novos setups e funcionalidades.
+                O MindSet é um projeto em evolução. Ajude-nos a manter os servidores e criar novos setups.
             </p>
             <div class="pix-box" onclick="copyPix()">
                 <small>CHAVE PIX (CNPJ)</small>
                 <div id="pix-key" style="font-weight: bold; color: var(--accent);">00.000.000/0001-00</div>
-                <small style="opacity: 0.5;">Toque para copiar</small>
+                <small style="opacity: 0.5;">Toque para copiar chave</small>
             </div>
         </div>
     </section>
@@ -90,11 +91,16 @@
             <button class="btn-close" onclick="toggleMenu()">✕</button>
         </div>
         <div class="menu-links">
-            <a href="#" onclick="showSection('home')">MISSÕES</a>
+            <a href="#" onclick="showSection('home')">MINHAS MISSÕES</a>
             <a href="#" onclick="showSection('history')">CALENDÁRIO</a>
-            <a href="#" onclick="showSection('support')">APOIAR</a>
+            <a href="#" onclick="showSection('support')">APOIO</a>
+            
+            <a href="#" onclick="ativarNotificacoesManual()" id="btn-notificacao" style="color: #ffcc00; font-weight: bold; border: 1px dashed #ffcc0033; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                🔔 ATIVAR NOTIFICAÇÕES
+            </a>
+
             <hr style="opacity: 0.1; margin: 20px 0;">
-            <a href="#" onclick="confirmReset()" style="color: #ff3b3b;">REINICIAR TUDO</a>
+            <a href="#" onclick="confirmReset()" style="color: #ff3b3b; font-size: 0.8rem;">REINICIAR SISTEMA</a>
         </div>
     </nav>
 
@@ -107,10 +113,18 @@
     </div>
 
     <script src="js/setups/patriarca.js"></script>
-    <script src="js/setups/investidor.js"></script>
-    <script src="js/setups/militar.js"></script>
+    <script src="js/setups/matriarca.js"></script>
+    <script src="js/setups/cavalheiro.js"></script>
+    <script src="js/setups/dama.js"></script>
+    <script src="js/setups/devoto.js"></script>
+    <script src="js/setups/devota.js"></script>
     <script src="js/setups/ceo.js"></script>
+    <script src="js/setups/militar.js"></script>
+    <script src="js/setups/investidor.js"></script>
     <script src="js/setups/zen.js"></script>
     <script src="js/setups/estrategista.js"></script>
+    <script src="js/setups/atleta.js"></script>
+    <script src="js/setups/minimalista.js"></script>
+
     <script src="js/notifications.js"></script> <script src="js/app.js"></script>           </body>
 </html>
