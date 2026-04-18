@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MindSet | Inicialização</title>
-
+    
     <script>
-        (function() {
-            const css = document.createElement('link');
-            css.rel = 'stylesheet';
-            css.href = `css/main.css?v=${Date.now()}`;
-            document.head.appendChild(css);
-        })();
+        document.write('<link rel="stylesheet" href="css/main.css?v=' + new Date().getTime() + '">');
     </script>
 
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MindSet">
@@ -31,6 +27,7 @@
         OneSignal.Notifications.showSlidedownPrompt();
       });
     </script>
+
 </head>
 <body id="main-body">
 
@@ -102,24 +99,15 @@
     </div>
 
     <script>
-        (function() {
-            const script = document.createElement('script');
-            script.src = `js/main.js?v=${Date.now()}`;
-            script.async = false;
-            document.body.appendChild(script);
-        })();
+        document.write('<script src="js/main.js?v=' + new Date().getTime() + '"><\/script>');
     </script>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => {
-                    // Se você está testando e mudou algo, isso avisa o SW para atualizar
-                    reg.update();
-                    console.log("MindSet Online!");
-                })
-                .catch(err => console.log("Erro SW:", err));
-        }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log("MindSet pronto!"))
+          .catch(err => console.log("Erro no SW:", err));
+      }
     </script>
 
 </body>
