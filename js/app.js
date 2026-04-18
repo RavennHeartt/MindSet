@@ -1,12 +1,13 @@
 /**
- * MINDSET - CORE ENGINE v1.6
- * Lógica de HUD, Progressão Reversível, Streak e Calendário Inteligente
+ * MINDSET - CORE ENGINE v1.9
+ * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização de Tour
  */
 
-// 1. GESTÃO DE DADOS (LocalStorage)
+// 1. GESTÃO DE DADOS
 let rawData = localStorage.getItem('mindset_data');
 let userData = rawData ? JSON.parse(rawData) : null;
 
+// Inicialização de segurança e recuperação de estados
 if (userData) {
     userData.level = Math.max(1, userData.level || 1);
     userData.xp = userData.xp || 0;
@@ -18,16 +19,14 @@ if (userData) {
     userData.historyTasks = userData.historyTasks || {};
     userData.tomorrowTasks = userData.tomorrowTasks || [];
     userData.lastDate = userData.lastDate || "";
+    userData.dailyQuote = userData.dailyQuote || "O sistema está pronto.";
 }
 
 let currentSetup = null;
 let currentViewDate = new Date();
 
-// 2. MOTOR DE PROGRESSÃO E STREAK
+// --- 2. MOTOR DE PROGRESSÃO ---
 
-/**
- * Calcula o bônus diário baseado no Streak (Exponencial)
- */
 function getStreakBonus(streak) {
     if (streak <= 0) return 0;
     return Math.floor(100 * (streak * 0.5 + 0.5) * streak);
@@ -35,10 +34,8 @@ function getStreakBonus(streak) {
 
 window.completeTask = (id, xp) => {
     const isAlreadyDone = userData.completedTodayIds.includes(id);
-    const allHabits = Object.values(currentSetup.habitos).flat();
 
     if (!isAlreadyDone) {
-        // --- AÇÃO: CONCLUIR ---
         userData.completedTodayIds.push(id);
         userData.tasksDoneToday++;
         userData.xp += xp;
@@ -47,14 +44,12 @@ window.completeTask = (id, xp) => {
             userData.streak++;
             const bonus = getStreakBonus(userData.streak);
             userData.xp += bonus;
-            
             if (!userData.completedDays.includes(userData.lastDate)) {
                 userData.completedDays.push(userData.lastDate);
             }
-            window.showModal("META ATINGIDA", `Sequência de ${userData.streak} dias! +${bonus} XP de bônus.`);
+            window.showModal("META ATINGIDA", `Sequência de ${userData.streak} dias! +${bonus} XP bônus.`);
         }
     } else {
-        // --- AÇÃO: DESMARCAR (ROLLBACK) ---
         if (userData.tasksDoneToday === 3) {
             const bonusRemover = getStreakBonus(userData.streak);
             userData.xp -= bonusRemover;
@@ -82,12 +77,11 @@ function handleLeveling() {
         userData.level--;
         let prevTarget = 1000 + (userData.level * 1000);
         userData.xp = prevTarget + userData.xp;
-        window.showModal("REGRESSÃO", "Sua patente desceu por falta de consistência.");
     }
     if (userData.xp < 0) userData.xp = 0;
 }
 
-// 3. SINCRONIZAÇÃO DIÁRIA E PUNIÇÃO
+// --- 3. SINCRONIZAÇÃO E TAREFAS ---
 
 function forceDateSync() {
     const agora = new Date();
@@ -99,27 +93,20 @@ function forceDateSync() {
                 ids: [...userData.dailyTaskIds],
                 done: [...userData.completedTodayIds]
             };
-
-            if (userData.tasksDoneToday < 3) {
-                if (userData.streak > 0) {
-                    let penalidade = Math.floor(userData.level * 250);
-                    userData.xp = Math.max(-500, userData.xp - penalidade);
-                    userData.streak = 0;
-                    window.showModal("STREAK PERDIDO", `Falha detectada. Sequência resetada e -${penalidade} XP.`);
-                }
+            if (userData.tasksDoneToday < 3 && userData.streak > 0) {
+                let penalidade = Math.floor(userData.level * 250);
+                userData.xp = Math.max(-500, userData.xp - penalidade);
+                userData.streak = 0;
+                window.showModal("SISTEMA RESETADO", `Falha detectada ontem. Streak zerado e -${penalidade} XP.`);
             }
         }
-
         userData.dailyTaskIds = userData.tomorrowTasks.length === 3 ? userData.tomorrowTasks : selectNewTasks();
         userData.tomorrowTasks = selectNewTasks();
-        
         const quotes = currentSetup.quotes || ["Foco no agora."];
         userData.dailyQuote = quotes[Math.floor(Math.random() * quotes.length)];
-        
         userData.lastDate = hojeStr;
         userData.tasksDoneToday = 0;
         userData.completedTodayIds = [];
-        
         handleLeveling();
         save();
         renderTasks();
@@ -137,13 +124,12 @@ function selectNewTasks() {
     return [...pool].sort(() => 0.5 - Math.random()).slice(0, 3).map(t => t.id);
 }
 
-// 4. RENDERIZAÇÃO E CALENDÁRIO
+// --- 4. RENDERIZAÇÃO E UI ---
 
 function renderTasks() {
     const list = document.getElementById('task-list');
     if (!list) return;
     list.innerHTML = "";
-    
     const allHabits = Object.values(currentSetup.habitos).flat();
     const todayHabits = allHabits.filter(h => userData.dailyTaskIds.includes(h.id));
 
@@ -157,31 +143,39 @@ function renderTasks() {
                 <small>${isDone ? 'CONCLUÍDO' : '+' + task.xp + ' XP'}</small>
             </div>
             <button class="btn-check" onclick="window.completeTask('${task.id}', ${task.xp})">
-                ${isDone ? '✕' : '✓'}
+                ${isDone ? '✓' : ''}
             </button>
         `;
         list.appendChild(div);
     });
-    
     const quoteEl = document.getElementById('quote-text');
-    if (quoteEl) quoteEl.innerText = `"${userData.dailyQuote || ''}"`;
+    if (quoteEl) quoteEl.innerText = `"${userData.dailyQuote}"`;
 }
+
+window.showSection = (id) => {
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${id}`).classList.add('active');
+    
+    document.querySelectorAll('.menu-links li').forEach(li => li.classList.remove('menu-active'));
+    const activeBtn = Array.from(document.querySelectorAll('.menu-links li'))
+                           .find(li => li.getAttribute('onclick')?.includes(id));
+    if (activeBtn) activeBtn.classList.add('menu-active');
+
+    if (id === 'history') window.renderCalendar();
+    window.toggleMenu();
+};
 
 window.renderCalendar = () => {
     const grid = document.getElementById('calendar-days');
     const label = document.getElementById('calendar-month-year');
     if(!grid || !label) return;
-
     grid.innerHTML = "";
     const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
     const meses = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
     label.innerText = `${meses[m]} ${y}`;
-    
     const primeiroDia = new Date(y, m, 1).getDay();
     const ultimoDia = new Date(y, m + 1, 0).getDate();
-
     for (let i = 0; i < primeiroDia; i++) grid.innerHTML += `<div class="calendar-day"></div>`;
-
     for (let d = 1; d <= ultimoDia; d++) {
         const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const isDone = userData.completedDays.includes(dStr);
@@ -196,27 +190,20 @@ window.renderCalendar = () => {
 window.showDayDetail = (dateStr) => {
     const cont = document.getElementById('day-detail-container');
     if (!cont) return;
-
     const agora = new Date();
     const hojeData = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
     const [y, m, d] = dateStr.split('-').map(Number);
     const clicadaData = new Date(y, m - 1, d);
-    
-    let html = `<h4 class="section-title">DETALHES: ${dateStr.split('-').reverse().join('/')}</h4>`;
-    let tasks = [], done = [];
-    let isFuture = clicadaData > hojeData;
-    let isToday = dateStr === userData.lastDate;
+    const amanha = new Date(hojeData); amanha.setDate(amanha.getDate() + 1);
+    const amanhaStr = amanha.getFullYear() + '-' + String(amanha.getMonth() + 1).padStart(2, '0') + '-' + String(amanha.getDate()).padStart(2, '0');
 
-    if (isToday) {
+    let html = `<h4 class="section-title">DETALHES: ${dateStr.split('-').reverse().join('/')}</h4>`;
+    let tasks = [], done = [], statusType = "";
+
+    if (dateStr === userData.lastDate) {
         tasks = userData.dailyTaskIds; done = userData.completedTodayIds;
-    } else if (isFuture) {
-        const amanha = new Date(hojeData);
-        amanha.setDate(amanha.getDate() + 1);
-        const amanhaStr = amanha.getFullYear() + '-' + String(amanha.getMonth() + 1).padStart(2, '0') + '-' + String(amanha.getDate()).padStart(2, '0');
-        if (dateStr === amanhaStr) {
-            tasks = userData.tomorrowTasks;
-            html += `<p style="font-size:0.7rem; color:var(--accent); margin-bottom:10px;">📋 PLANEJAMENTO PARA AMANHÃ</p>`;
-        }
+    } else if (dateStr === amanhaStr) {
+        tasks = userData.tomorrowTasks; statusType = "previsto";
     } else if (userData.historyTasks[dateStr]) {
         tasks = userData.historyTasks[dateStr].ids;
         done = userData.historyTasks[dateStr].done;
@@ -227,51 +214,42 @@ window.showDayDetail = (dateStr) => {
         tasks.forEach(id => {
             const h = all.find(x => x.id === id);
             const ok = done.includes(id);
-            let statusIcon = ok ? "✓" : (isToday || isFuture ? "○" : "✕");
-            let statusColor = ok ? "#28a745" : (isToday || isFuture ? "#ffcc00" : "#dc3545");
-            let statusText = ok ? "CONCLUÍDO" : (isToday || isFuture ? "PENDENTE" : "FALHOU");
-
-            html += `
-                <div class="history-task" style="border-left: 2px solid ${statusColor}; padding-left:12px; margin-bottom:8px; display: flex; align-items: center;">
-                    <span style="color:${statusColor}; font-weight:bold; font-size:1.2rem; margin-right:10px; width: 20px;">${statusIcon}</span> 
-                    <div style="display:flex; flex-direction:column;">
-                        <span style="font-size:0.9rem;">${h ? h.task : 'Missão Antiga'}</span>
-                        <small style="color:${statusColor}; font-size:0.65rem; font-weight:bold;">${statusText}</small>
-                    </div>
-                </div>`;
+            let label, cssClass;
+            if (statusType === "previsto") { label = "PREVISTO"; cssClass = "status-previsto"; }
+            else if (ok) { label = "CONCLUÍDO"; cssClass = "status-concluido"; }
+            else {
+                const ehFuturoOuHoje = clicadaData >= hojeData;
+                label = ehFuturoOuHoje ? "PENDENTE" : "FALHOU";
+                cssClass = ehFuturoOuHoje ? "status-pendente" : "status-falhou";
+            }
+            html += `<div class="history-task ${cssClass}"><span>${h ? h.task : 'Missão Antiga'}</span><small>${label}</small></div>`;
         });
     } else {
-        html += `<p style="font-size:0.8rem; opacity:0.4">Sem registros.</p>`;
+        html += `<p style="font-size:0.8rem; opacity:0.4">${clicadaData > amanha ? 'Missões não geradas.' : 'Sem dados.'}</p>`;
     }
-    cont.innerHTML = html;
-    cont.style.display = 'block';
+    cont.innerHTML = html; cont.style.display = 'block';
+    cont.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
-// 5. UTILITÁRIOS E INICIALIZAÇÃO
+// --- 5. UTILITÁRIOS ---
 
-function updateUI() {
-    const lvl = userData.level;
-    document.getElementById('user-rank').innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
-    document.getElementById('level-display').innerText = `LVL ${lvl}`;
-    document.getElementById('streak-count').innerText = userData.streak;
-    const req = 1000 + (lvl * 1000);
-    document.getElementById('xp-fill').style.width = `${Math.max(0, Math.min(100, (userData.xp / req) * 100))}%`;
+window.copyPix = () => {
+    const pixText = document.getElementById('pix-key').innerText;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(pixText).then(() => window.showModal("SUCESSO", "Chave copiada!")).catch(() => fallbackCopy(pixText));
+    } else { fallbackCopy(pixText); }
+};
+
+function fallbackCopy(text) {
+    const area = document.createElement("textarea");
+    area.value = text; document.body.appendChild(area);
+    area.select(); document.execCommand('copy');
+    document.body.removeChild(area);
+    window.showModal("SUCESSO", "Chave copiada!");
 }
 
-window.onload = () => {
-    if (!userData) { window.location.href = 'index.html'; return; }
-    currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
-    document.documentElement.style.setProperty('--accent', currentSetup.cor);
-    document.body.style.background = `radial-gradient(circle at top, ${currentSetup.cor}22 0%, #000 100%)`;
-    document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
-    forceDateSync();
-    updateUI();
-    renderTasks();
-    if (typeof initNotifications === "function") initNotifications();
-};
-
 window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
-window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+
 window.showModal = (title, msg) => {
     const m = document.getElementById('modal-overlay');
     m.style.display = 'flex';
@@ -280,22 +258,65 @@ window.showModal = (title, msg) => {
     document.getElementById('modal-buttons').innerHTML = `<button class="btn-modal" onclick="window.closeModal()">OK</button>`;
 };
 
-window.showSection = (id) => {
-    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-    const target = document.getElementById(`section-${id}`);
-    if (target) target.classList.add('active');
-    if (id === 'history') window.renderCalendar();
-    window.toggleMenu();
+window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+
+window.confirmReset = () => {
+    window.showModal("RESETAR?", "Todo o progresso será perdido.");
+    document.getElementById('modal-buttons').innerHTML = `
+        <button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">CONFIRMAR</button>
+        <button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222; color:#fff">CANCELAR</button>
+    `;
 };
 
-window.changeMonth = (dir) => { currentViewDate.setMonth(currentViewDate.getMonth() + dir); window.renderCalendar(); };
-window.copyPix = () => { navigator.clipboard.writeText(document.getElementById('pix-key').innerText).then(() => window.showModal("COPIADO", "Chave PIX copiada.")); };
-window.confirmReset = () => {
-    window.showModal("REINICIAR?", "Seus dados serão apagados.");
-    document.getElementById('modal-buttons').innerHTML = `<button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">RESETAR</button><button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222; color:#fff">CANCELAR</button>`;
-};
+function updateUI() {
+    const lvl = userData.level;
+    const req = 1000 + (lvl * 1000);
+    document.getElementById('user-rank').innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
+    document.getElementById('level-display').innerText = `LVL ${lvl}`;
+    document.getElementById('streak-count').innerText = userData.streak;
+    document.getElementById('xp-fill').style.width = `${Math.min(100, (userData.xp / req) * 100)}%`;
+}
 
 function save() { localStorage.setItem('mindset_data', JSON.stringify(userData)); }
+
+window.changeMonth = (dir) => { currentViewDate.setMonth(currentViewDate.getMonth() + dir); window.renderCalendar(); };
+
+// --- 6. INICIALIZAÇÃO ---
+
+const hexToRgb = hex => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r}, ${g}, ${b}`;
+};
+
+window.onload = () => {
+    if (!userData) { window.location.href = 'index.html'; return; }
+    
+    setTimeout(() => {
+        currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
+        
+        // Cores Dinâmicas
+        const corHex = currentSetup.cor;
+        document.documentElement.style.setProperty('--accent', corHex);
+        document.documentElement.style.setProperty('--accent-rgb', hexToRgb(corHex));
+        
+        document.body.style.background = `radial-gradient(circle at top, ${corHex}22 0%, #000 100%)`;
+        document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
+
+        forceDateSync();
+        updateUI();
+        renderTasks();
+
+        // Inicializa aba ativa no menu
+        const initialLi = Array.from(document.querySelectorAll('.menu-links li'))
+                               .find(li => li.getAttribute('onclick')?.includes('tasks'));
+        if (initialLi) initialLi.classList.add('menu-active');
+
+        // SINAL PARA O TOUR: HUD está pronto
+        window.dispatchEvent(new Event('hudReady'));
+    }, 400);
+};
 
 const setupLibrary = {
     'patriarca': typeof patriarcaData !== 'undefined' ? patriarcaData : null,
