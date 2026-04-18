@@ -1,8 +1,8 @@
 [{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "io.github.ravennheartt.twa",
-        "sha256_cert_fingerprints": ["C5:61:69:71:02:05:44:EA:83:52:96:94:DB:32:AE:FA:AD:44:01:66:4F:38:C2:AD:BA:B8:97:08:C4:50:57:A2"]
-      }
-    }]
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.ravennheartt.twa",
+    "sha256_cert_fingerprints": ["C5616971020544EA83529694DB32AEFAAD4401664F38C2ADBAB89708C45057A2"]
+  }
+}]
