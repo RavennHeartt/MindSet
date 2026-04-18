@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.ravennheartt.mindset",
-        "sha256_cert_fingerprints": ["FD:AB:48:C7:41:9D:CC:CE:C6:74:C0:7F:DE:40:DC:C8:7D:05:A9:A0:51:B3:0A:80:02:21:6D:AC:6C:86:95:C5"]
+        "package_name": "io.github.ravennheartt.twa",
+        "sha256_cert_fingerprints": ["C5:61:69:71:02:05:44:EA:83:52:96:94:DB:32:AE:FA:AD:44:01:66:4F:38:C2:AD:BA:B8:97:08:C4:50:57:A2"]
       }
     }]
