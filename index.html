@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MindSet | Inicialização</title>
+    
     <link rel="stylesheet" href="css/main.css">
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
 
@@ -17,16 +18,16 @@
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
-          // Vincula o APK local aos ficheiros Service Worker no teu GitHub
           serviceWorkerParam: { scope: "/" },
           serviceWorkerPath: "OneSignalSDKWorker.js",
+          // Permite testar via localhost no PC sem erro de segurança
+          allowLocalhostAsSecureOrigin: true, 
         });
         
-        // Tenta mostrar o prompt de permissão automaticamente na entrada
+        // Tenta disparar o prompt automaticamente
         OneSignal.Notifications.showSlidedownPrompt();
       });
     </script>
-
 </head>
 <body id="main-body">
 
@@ -34,7 +35,7 @@
         <div class="form-container" style="text-align: center;">
             <h1 class="logo">MindSet</h1>
             <p class="welcome-text">
-                Te ajudaremos a construir uma nova mentalidade e reprogramar os teus hábitos de forma definitiva.
+                Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.
             </p>
             <button class="btn-main" onclick="startOnboarding()">COMEÇAR</button>
         </div>
@@ -46,11 +47,11 @@
             
             <div class="input-group" id="group-name">
                 <label>COMO DEVEMOS TE CHAMAR?</label>
-                <input type="text" id="user-name" placeholder="Digita o teu nome ou apelido...">
+                <input type="text" id="user-name" placeholder="Digite seu nome ou apelido...">
             </div>
 
             <div class="input-group" id="group-gender">
-                <label>GÉNERO</label>
+                <label>GÊNERO</label>
                 <div class="gender-toggle-wrapper">
                     <input type="checkbox" id="gender-toggle" hidden>
                     <div class="toggle-pill"></div>
@@ -97,20 +98,12 @@
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title">AVISO</h3>
-            <p id="modal-message">Mensagem aqui.</p>
+            <p id="modal-message"></p>
             <div id="modal-buttons" class="modal-buttons"></div>
         </div>
     </div>
 
     <script src="js/main.js"></script>
-    <script>
-        // Registo do Service Worker para suporte Offline (PWA)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log("MindSet pronto para uso offline!"))
-                .catch(err => console.log("Erro no SW:", err));
-        }
-    </script>
 
 </body>
 </html>
