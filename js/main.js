@@ -197,7 +197,7 @@ function renderCarousel() {
         card.className = 'setup-card';
         card.innerHTML = `
             <h2>${s.nome}</h2>
-            <img src="assets/${s.id}.jpg" onerror="this.src='https://via.placeholder.com/220/222/fff?text=${s.nome}'">
+            <img src="assets/${s.id}.png" onerror="this.src='https://via.placeholder.com/220/222/fff?text=${s.nome}'">
             <p>${s.desc}</p>
         `;
         list.appendChild(card);
