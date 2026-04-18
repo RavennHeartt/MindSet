@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.ravennheartt.mindset",
+        "sha256_cert_fingerprints": ["FD:AB:48:C7:41:9D:CC:CE:C6:74:C0:7F:DE:40:DC:C8:7D:05:A9:A0:51:B3:0A:80:02:21:6D:AC:6C:86:95:C5"]
+      }
+    }]
