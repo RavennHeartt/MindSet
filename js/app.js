@@ -1,13 +1,13 @@
 /**
- * MINDSET - CORE ENGINE v1.2
- * Lógica de HUD, Progressão e Calendário Interativo
+ * MINDSET - CORE ENGINE v1.5
+ * Lógica de HUD, Progressão Reversível e Streak Multiplicador
  */
 
 // 1. GESTÃO DE DADOS (LocalStorage)
 let rawData = localStorage.getItem('mindset_data');
 let userData = rawData ? JSON.parse(rawData) : null;
 
-// Inicialização de segurança e suporte a versões anteriores
+// Inicialização de segurança para novos utilizadores ou dados incompletos
 if (userData) {
     userData.level = Math.max(1, userData.level || 1);
     userData.xp = userData.xp || 0;
@@ -22,63 +22,121 @@ if (userData) {
 }
 
 let currentSetup = null;
-let currentViewDate = new Date(); // Controla a navegação visual do calendário
+let currentViewDate = new Date(); // Controla a navegação do calendário
 
-// 2. INICIALIZAÇÃO DO APP
-window.onload = () => {
-    if (!userData) { 
-        window.location.href = 'index.html'; 
-        return; 
+// 2. MOTOR DE PROGRESSÃO E STREAK
+
+/**
+ * Calcula o bónus diário baseado no Streak.
+ * Quanto maior a sequência, maior o prémio (Crescimento Exponencial).
+ */
+function getStreakBonus(streak) {
+    if (streak <= 0) return 0;
+    // Tabela progressiva aproximada: 1d=100xp, 3d=300xp, 7d=1400xp, 15d=6000xp
+    return Math.floor(100 * (streak * 0.5 + 0.5) * streak);
+}
+
+window.completeTask = (id, xp) => {
+    const isAlreadyDone = userData.completedTodayIds.includes(id);
+    const allHabits = Object.values(currentSetup.habitos).flat();
+    const habit = allHabits.find(h => h.id === id);
+
+    if (!isAlreadyDone) {
+        // --- AÇÃO: CONCLUIR ---
+        userData.completedTodayIds.push(id);
+        userData.tasksDoneToday++;
+        userData.xp += xp;
+
+        // Bateu a meta de 3/3 (META DIÁRIA)
+        if (userData.tasksDoneToday === 3) {
+            userData.streak++;
+            const bonus = getStreakBonus(userData.streak);
+            userData.xp += bonus;
+            
+            if (!userData.completedDays.includes(userData.lastDate)) {
+                userData.completedDays.push(userData.lastDate);
+            }
+            window.showModal("META ATINGIDA", `Sequência de ${userData.streak} dias! Recebeu +${bonus} XP de bónus.`);
+        }
+    } else {
+        // --- AÇÃO: DESMARCAR (ROLLBACK) ---
+        // Se ele tinha batido a meta e está a voltar atrás, removemos o bónus de streak
+        if (userData.tasksDoneToday === 3) {
+            const bonusRemover = getStreakBonus(userData.streak);
+            userData.xp -= bonusRemover;
+            userData.streak--;
+            userData.completedDays = userData.completedDays.filter(d => d !== userData.lastDate);
+        }
+
+        userData.completedTodayIds = userData.completedTodayIds.filter(taskId => taskId !== id);
+        userData.tasksDoneToday--;
+        userData.xp -= xp;
     }
-    
-    // Identifica o setup escolhido na biblioteca carregada no HTML
-    currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
 
-    // Aplica a identidade visual (Cores dinâmicas)
-    document.documentElement.style.setProperty('--accent', currentSetup.cor);
-    document.body.style.background = `radial-gradient(circle at top, ${currentSetup.cor}22 0%, #000 100%)`;
-    document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
-
-    // Sincroniza o dia e renderiza a interface
-    forceDateSync();
+    handleLeveling();
+    save();
     updateUI();
     renderTasks();
-
-    // INICIALIZA O MOTOR DE NOTIFICAÇÕES (Função que reside no notifications.js)
-    if (typeof initNotifications === "function") {
-        initNotifications();
-    }
 };
 
-// 3. MOTOR DE MISSÕES E DATAS
+function handleLeveling() {
+    let xpTarget = 1000 + (userData.level * 1000);
+
+    // LEVEL UP
+    if (userData.xp >= xpTarget && userData.level < 10) {
+        userData.xp -= xpTarget;
+        userData.level++;
+        window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
+    } 
+    // LEVEL DOWN (Por penalidade de falha ou estorno de pontos)
+    else if (userData.xp < 0 && userData.level > 1) {
+        userData.level--;
+        let prevTarget = 1000 + (userData.level * 1000);
+        userData.xp = prevTarget + userData.xp; // Transfere o débito para a barra anterior
+        window.showModal("REGRESSÃO", "A sua patente desceu devido à falta de consistência ou estorno.");
+    }
+    
+    if (userData.xp < 0) userData.xp = 0;
+}
+
+// 3. SINCRONIZAÇÃO DIÁRIA E PUNIÇÃO
+
 function forceDateSync() {
     const agora = new Date();
     const hojeStr = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
     
-    // Se mudou o dia (ou primeira vez abrindo hoje)
     if (userData.lastDate !== hojeStr) {
         if (userData.lastDate !== "") {
-            // Guarda o que foi feito ontem no histórico
+            // Regista histórico do dia que passou
             userData.historyTasks[userData.lastDate] = {
                 ids: [...userData.dailyTaskIds],
                 done: [...userData.completedTodayIds]
             };
-            // Se falhou a meta de 3 tarefas, perde o fogo (streak)
-            if (userData.tasksDoneToday < 3) userData.streak = 0;
+
+            // PENALIDADE POR QUEBRA DE STREAK
+            if (userData.tasksDoneToday < 3) {
+                if (userData.streak > 0) {
+                    // Punição: Perde o streak e XP proporcional ao nível
+                    let penalidade = Math.floor(userData.level * 250);
+                    userData.xp = Math.max(-500, userData.xp - penalidade);
+                    userData.streak = 0;
+                    window.showModal("STREAK PERDIDO", `Falhou ontem. Sequência resetada e perdeu ${penalidade} XP.`);
+                }
+            }
         }
 
-        // Promove as missões de amanhã para hoje ou sorteia novas
+        // Rodagem de missões: Amanhã torna-se Hoje
         userData.dailyTaskIds = userData.tomorrowTasks.length === 3 ? userData.tomorrowTasks : selectNewTasks();
-        userData.tomorrowTasks = selectNewTasks(); // Prepara o próximo dia
+        userData.tomorrowTasks = selectNewTasks();
         
-        // Sorteia uma frase motivacional do setup
-        const quotes = currentSetup.quotes || ["Foco no progresso."];
+        const quotes = currentSetup.quotes || ["Foco no agora."];
         userData.dailyQuote = quotes[Math.floor(Math.random() * quotes.length)];
         
         userData.lastDate = hojeStr;
         userData.tasksDoneToday = 0;
         userData.completedTodayIds = [];
         
+        handleLeveling(); // Verifica se a penalidade causou Level Down
         save();
         renderTasks();
         updateUI();
@@ -88,16 +146,15 @@ function forceDateSync() {
 function selectNewTasks() {
     let pool = [];
     const lvlLimit = Math.min(userData.level || 1, 10);
-    // Cria um conjunto de hábitos baseado no nível atual do usuário
     for (let i = 1; i <= lvlLimit; i++) {
         const habits = currentSetup.habitos[`nivel${i}`];
         if (habits) pool = pool.concat(habits);
     }
-    // Embaralha e seleciona 3
     return [...pool].sort(() => 0.5 - Math.random()).slice(0, 3).map(t => t.id);
 }
 
-// 4. RENDERIZAÇÃO E INTERAÇÃO
+// 4. RENDERIZAÇÃO E UI
+
 function renderTasks() {
     const list = document.getElementById('task-list');
     if (!list) return;
@@ -110,90 +167,43 @@ function renderTasks() {
         const isDone = userData.completedTodayIds.includes(task.id);
         const div = document.createElement('div');
         div.className = `task-item ${isDone ? 'completed' : ''}`;
+        
         div.innerHTML = `
-            <div>
+            <div class="task-info">
                 <strong>${task.task}</strong><br>
-                <small>+${task.xp} XP</small>
+                <small>${isDone ? 'CONCLUÍDO' : '+' + task.xp + ' XP'}</small>
             </div>
-            <button class="btn-check" onclick="window.completeTask('${task.id}', ${task.xp})"></button>
+            <button class="btn-check" onclick="window.completeTask('${task.id}', ${task.xp})">
+                ${isDone ? '✕' : '✓'}
+            </button>
         `;
         list.appendChild(div);
     });
-    document.getElementById('quote-text').innerText = `"${userData.dailyQuote || ''}"`;
+    
+    const quoteEl = document.getElementById('quote-text');
+    if (quoteEl) quoteEl.innerText = `"${userData.dailyQuote || ''}"`;
 }
-
-window.completeTask = (id, xp) => {
-    if (userData.completedTodayIds.includes(id)) return;
-    
-    userData.completedTodayIds.push(id);
-    userData.tasksDoneToday++;
-    userData.xp += xp;
-
-    // Lógica de Meta Batida
-    if (userData.tasksDoneToday === 3) {
-        userData.streak++;
-        userData.xp += 100; // Bônus de consistência
-        if (!userData.completedDays.includes(userData.lastDate)) {
-            userData.completedDays.push(userData.lastDate);
-        }
-        window.showModal("MISSÃO CUMPRIDA", "Meta diária atingida com sucesso!");
-    }
-
-    // Lógica de Level Up (Sobe a cada 1000 XP + multiplicador de nível)
-    const xpReq = 1000 + (userData.level * 1000);
-    if (userData.xp >= xpReq && userData.level < 10) {
-        userData.xp -= xpReq;
-        userData.level++;
-        window.showModal("EVOLUÇÃO", "Subiste de patente! Novo nível: " + userData.level);
-    }
-    
-    save(); 
-    updateUI(); 
-    renderTasks();
-};
 
 function updateUI() {
     const lvl = userData.level;
-    const rankNome = (currentSetup.ranks && currentSetup.ranks[lvl-1]) ? currentSetup.ranks[lvl-1] : "INICIANTE";
+    const rankEl = document.getElementById('user-rank');
+    const lvlEl = document.getElementById('level-display');
+    const xpFill = document.getElementById('xp-fill');
+    const streakEl = document.getElementById('streak-count');
+
+    if (rankEl) rankEl.innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
+    if (lvlEl) lvlEl.innerText = `LVL ${lvl}`;
+    if (streakEl) streakEl.innerText = userData.streak;
     
-    document.getElementById('user-rank').innerText = rankNome.toUpperCase();
-    document.getElementById('level-display').innerText = `LVL ${lvl}`;
-    
-    const req = 1000 + (lvl * 1000);
-    const perc = Math.min(100, (userData.xp / req) * 100);
-    document.getElementById('xp-fill').style.width = `${perc}%`;
-    document.getElementById('streak-count').innerText = userData.streak;
+    if (xpFill) {
+        const req = 1000 + (lvl * 1000);
+        const percent = (userData.xp / req) * 100;
+        xpFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
 }
 
-// 5. UTILITÁRIOS E NAVEGAÇÃO
-window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
-window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+// 5. CALENDÁRIO
 
-window.showSection = (id) => {
-    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-    const target = document.getElementById(`section-${id}`);
-    if (target) target.classList.add('active');
-    
-    if (id === 'history') window.renderCalendar();
-    window.toggleMenu();
-};
-
-window.confirmReset = () => {
-    window.showModal("REINICIAR SISTEMA?", "O teu nível, XP e histórico serão apagados permanentemente.");
-    document.getElementById('modal-buttons').innerHTML = `
-        <button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">REINICIAR TUDO</button>
-        <button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222;">CANCELAR</button>
-    `;
-};
-
-window.copyPix = () => {
-    const key = document.getElementById('pix-key').innerText;
-    navigator.clipboard.writeText(key).then(() => {
-        window.showModal("COPIADO", "Chave PIX copiada para a área de transferência.");
-    });
-};
-
-// 6. LÓGICA DO CALENDÁRIO
 window.changeMonth = (dir) => {
     currentViewDate.setMonth(currentViewDate.getMonth() + dir);
     window.renderCalendar();
@@ -209,14 +219,12 @@ window.renderCalendar = () => {
     const meses = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
     label.innerText = `${meses[m]} ${y}`;
     
-    const primeiroDiaNum = new Date(y, m, 1).getDay();
-    const ultimoDiaNum = new Date(y, m + 1, 0).getDate();
+    const primeiroDia = new Date(y, m, 1).getDay();
+    const ultimoDia = new Date(y, m + 1, 0).getDate();
 
-    // Espaços vazios no início do mês
-    for (let i = 0; i < primeiroDiaNum; i++) grid.innerHTML += `<div class="calendar-day"></div>`;
+    for (let i = 0; i < primeiroDia; i++) grid.innerHTML += `<div class="calendar-day"></div>`;
 
-    // Dias do mês
-    for (let d = 1; d <= ultimoDiaNum; d++) {
+    for (let d = 1; d <= ultimoDia; d++) {
         const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const isDone = userData.completedDays.includes(dStr);
         const el = document.createElement('div');
@@ -229,6 +237,8 @@ window.renderCalendar = () => {
 
 window.showDayDetail = (dateStr) => {
     const cont = document.getElementById('day-detail-container');
+    if (!cont) return;
+
     let html = `<h4 class="section-title">DETALHES: ${dateStr.split('-').reverse().join('/')}</h4>`;
     let tasks = [], done = [];
 
@@ -244,28 +254,79 @@ window.showDayDetail = (dateStr) => {
         tasks.forEach(id => {
             const h = all.find(x => x.id === id);
             const ok = done.includes(id);
-            html += `<div class="history-task" style="border-left: 2px solid ${ok ? '#28a745' : '#dc3545'}; padding-left:10px; margin-bottom:5px;">
-                        <span>${ok ? '✓' : '✕'}</span> ${h ? h.task : 'Missão Antiga'}
+            let color = ok ? "#28a745" : "#dc3545";
+            html += `<div class="history-task" style="border-left: 2px solid ${color}; padding-left:12px; margin-bottom:8px; font-size:0.9rem;">
+                        <span style="color:${color}; font-weight:bold;">${ok ? '✓' : '✕'}</span> ${h ? h.task : 'Missão Antiga'}
                      </div>`;
         });
     } else {
-        html += `<p style="font-size:0.8rem; opacity:0.4">Sem registos para este dia.</p>`;
+        html += `<p style="font-size:0.8rem; opacity:0.4">Nenhum registo disponível.</p>`;
     }
     cont.innerHTML = html;
     cont.style.display = 'block';
 };
 
+// 6. UTILITÁRIOS E MENU
+
+window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
+window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+
 window.showModal = (title, msg) => {
     const m = document.getElementById('modal-overlay');
+    if(!m) return;
     m.style.display = 'flex';
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-message').innerText = msg;
-    document.getElementById('modal-buttons').innerHTML = `<button class="btn-modal" onclick="window.closeModal()">OK</button>`;
+    document.getElementById('modal-buttons').innerHTML = `<button class="btn-modal" onclick="window.closeModal()">ENTENDIDO</button>`;
+};
+
+window.showSection = (id) => {
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(`section-${id}`);
+    if (target) target.classList.add('active');
+    
+    if (id === 'history') window.renderCalendar();
+    window.toggleMenu();
+};
+
+window.copyPix = () => {
+    const key = document.getElementById('pix-key').innerText;
+    navigator.clipboard.writeText(key).then(() => {
+        window.showModal("COPIADO", "Chave PIX copiada para a área de transferência.");
+    });
+};
+
+window.confirmReset = () => {
+    window.showModal("REINICIAR SISTEMA?", "O seu nível, XP e histórico de vitórias serão apagados permanentemente.");
+    document.getElementById('modal-buttons').innerHTML = `
+        <button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">REINICIAR TUDO</button>
+        <button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222; color:#fff">CANCELAR</button>
+    `;
 };
 
 function save() { localStorage.setItem('mindset_data', JSON.stringify(userData)); }
 
-// MAPA DA BIBLIOTECA DE SETUPS
+// 7. INICIALIZAÇÃO
+
+window.onload = () => {
+    if (!userData) { window.location.href = 'index.html'; return; }
+    
+    currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
+
+    document.documentElement.style.setProperty('--accent', currentSetup.cor);
+    document.body.style.background = `radial-gradient(circle at top, ${currentSetup.cor}22 0%, #000 100%)`;
+    
+    const nameDisp = document.getElementById('user-name-display');
+    if (nameDisp) nameDisp.innerText = userData.nome.toUpperCase();
+
+    forceDateSync();
+    updateUI();
+    renderTasks();
+
+    if (typeof initNotifications === "function") initNotifications();
+};
+
+// Biblioteca de Setups
 const setupLibrary = {
     'patriarca': typeof patriarcaData !== 'undefined' ? patriarcaData : null,
     'matriarca': typeof matriarcaData !== 'undefined' ? matriarcaData : null,

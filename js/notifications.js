@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v1.2
- * Gerenciamento de vozes, agendamento e lógica de pendências por setup
+ * MINDSET - NOTIFICATIONS ENGINE v1.3 (FULL ROBUST)
+ * Gestão de vozes, IDs externos, Tags e monitorização de missões
  */
 
 const mindsetVoices = {
@@ -10,7 +10,7 @@ const mindsetVoices = {
     'dama': { morning: "Elegância é eficiência. Domine seu dia.", afternoon: "Sua influência cresce quando suas metas são batidas.", night_win: "Postura e vitória. Um dia perfeito.", night_loss: "A falta de disciplina ofusca sua elegância." },
     'devoto': { morning: "Consagre suas horas. A disciplina é sua oração.", afternoon: "Não fraqueje. A constância é a prova da sua fé.", night_win: "Espírito fortalecido. Vitória alcançada.", night_loss: "A procrastinação é uma armadilha para a alma." },
     'devota': { morning: "Fortaleça sua base espiritual através da ação.", afternoon: "Mantenha o foco. Sua luz depende da sua ordem.", night_win: "Coração em paz e missões cumpridas.", night_loss: "A desordem afasta a clareza. Retome o caminho." },
-    'ceo_ele': { morning: "Novo dia, novos negócios. Foco na execução.", afternoon: "Revisão de metas: Pendências matam o crescimento.", night_win: "Alta performance confirmada. Você dominou o mercado.", night_loss: "Resultados inaceitáveis. Reavalie sua gestão." },
+    'ceo_ele': { morning: "Novo dia, novos lucros. Foco na execução.", afternoon: "Revisão de metas: Pendências matam o crescimento.", night_win: "Alta performance confirmada. Você dominou o mercado.", night_loss: "Resultados inaceitáveis. Reavalie sua gestão." },
     'ceo_ela': { morning: "Liderança é ação. Execute sua visão.", afternoon: "KPIs em baixa. Termine suas missões agora.", night_win: "Visão estratégica concluída com sucesso.", night_loss: "Déficit de produtividade. Amanhã exijo foco total." },
     'militar_ele': { morning: "09:00h. Disciplina é liberdade. Cumpra a missão.", afternoon: "Soldado, o inimigo não descansa. Termine o serviço!", night_win: "Missão cumprida com honra. Descanso autorizado.", night_loss: "Fracasso operacional. Você foi negligente hoje." },
     'militar_ela': { morning: "Ordem e comando. Inicie as operações.", afternoon: "Sua tropa (metas) está dispersa. Recupere o controle!", night_win: "Objetivos atingidos. Padrão de elite mantido.", night_loss: "Indisciplina detectada. Retome o rigor imediatamente." },
@@ -24,37 +24,46 @@ const mindsetVoices = {
 };
 
 /**
- * Inicializa o OneSignal e as Tags do Usuário
+ * Inicializa a ligação ao OneSignal com sincronização de perfil
  */
 function initNotifications() {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(function(OneSignal) {
-        // Vincula o setup do usuário para envios manuais via Painel OneSignal
-        OneSignal.User.addTag("setup_ativo", userData.setup);
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        
+        // 1. Gera um ID único para este utilizador (External ID)
+        const cleanName = userData.nome.toLowerCase().replace(/\s/g, '_');
+        await OneSignal.login(cleanName); 
+
+        // 2. Sincroniza as Tags (Informação de HUD para o servidor)
+        await OneSignal.User.addTags({
+            "nome_usuario": userData.nome,
+            "setup_ativo": userData.setup,
+            "nivel_atual": userData.level,
+            "streak_atual": userData.streak
+        });
+
+        console.log("MindSet Notif: Perfil sincronizado para " + cleanName);
     });
 
-    // Inicia a vigilância do relógio (a cada 1 minuto)
+    // Inicia a verificação de missões em tempo real
     setInterval(checkNotificationSchedule, 60000);
 }
 
 /**
- * Verifica o horário e as pendências para disparar alertas
+ * Monitoriza o relógio para disparar as vozes do sistema
  */
 function checkNotificationSchedule() {
     const agora = new Date();
     const h = agora.getHours();
     const m = agora.getMinutes();
 
-    // Só processa no minuto zero das horas-chave
+    // Executa apenas na "hora cheia" (ex: 14:00)
     if (m !== 0) return;
 
-    const setupKey = userData.setup;
-    const voice = mindsetVoices[setupKey] || mindsetVoices['patriarca'];
-    
-    // Coleta todas as missões do setup
+    const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
     const todasHabitos = Object.values(currentSetup.habitos).flat();
     
-    // Filtra as missões que deveriam ser feitas hoje, mas não foram marcadas como concluídas
+    // Filtra apenas as missões que deveriam ser feitas hoje e NÃO foram concluídas
     const pendentes = todasHabitos.filter(h => 
         userData.dailyTaskIds.includes(h.id) && 
         !userData.completedTodayIds.includes(h.id)
@@ -63,46 +72,56 @@ function checkNotificationSchedule() {
     let titulo = "MINDSET";
     let mensagem = "";
 
-    // 09:00 - Mensagem de Boas-vindas/Ativação
+    // GATILHOS DE HORÁRIO
     if (h === 9) {
-        titulo = "SISTEMA INICIALIZADO";
+        titulo = "SISTEMA OPERACIONAL";
         mensagem = voice.morning;
     } 
-    // 14:00 - Cobrança Detalhada de Pendências
     else if (h === 14) {
         if (pendentes.length > 0) {
-            titulo = "PENDÊNCIAS DETECTADAS";
-            let listaMissoes = pendentes.map(p => `• ${p.task}`).join('\n');
-            mensagem = `${userData.nome}, ${voice.afternoon}\nAinda falta:\n${listaMissoes}`;
+            titulo = "ALERTAS DE PENDÊNCIA";
+            const listaTxt = pendentes.map(p => `• ${p.task}`).join('\n');
+            mensagem = `${userData.nome}, ${voice.afternoon}\nFalta cumprir:\n${listaTxt}`;
         }
     } 
-    // 22:00 - Veredito Final (Vitória ou Derrota)
     else if (h === 22) {
-        titulo = "RELATÓRIO DIÁRIO";
+        titulo = "ANÁLISE DO DIA";
         mensagem = (userData.tasksDoneToday >= 3) ? voice.night_win : voice.night_loss;
     }
 
-    // Se houver uma mensagem para o horário atual, envia via OneSignal
+    // Apenas para log interno. O envio PUSH real é gerido pelo servidor.
     if (mensagem !== "") {
-        console.log("MindSet Notification Log:", titulo, mensagem);
-        // O OneSignal cuida da exibição se o app estiver em background ou PWA ativo
+        console.log(`[PUSH SCHEDULED] ${titulo}: ${mensagem}`);
     }
 }
 
 /**
- * Função chamada pelo botão no menu lateral do app.html
+ * Função do Botão "ATIVAR NOTIFICAÇÕES" (Feedback Visual)
  */
 window.ativarNotificacoesManual = () => {
+    console.log("A solicitar permissão...");
+    
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-        // Verifica o estado atual da permissão
-        const permissionStatus = OneSignal.Notifications.permission;
-        
-        if (permissionStatus === "granted") {
-            window.showModal("SISTEMA ATIVO", "As notificações já estão autorizadas e ativas para o seu dispositivo.");
-        } else {
-            // Tenta abrir o prompt de permissão novamente
-            OneSignal.Notifications.requestPermission();
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+            // Abre o prompt nativo do Android/Chrome
+            await OneSignal.Notifications.requestPermission();
+            
+            // Verifica o resultado
+            if (OneSignal.Notifications.permission) {
+                window.showModal(
+                    "SISTEMA ATIVO", 
+                    "As notificações foram autorizadas. O MindSet agora pode enviar alertas para o seu HUD."
+                );
+            } else {
+                window.showModal(
+                    "AVISO", 
+                    "Permissão negada. Para receber alertas, por favor ative as notificações nas definições do seu navegador/telemóvel."
+                );
+            }
+        } catch (error) {
+            console.error("Erro OneSignal:", error);
+            window.showModal("ERRO", "Não foi possível conectar ao motor de notificações.");
         }
     });
 };
