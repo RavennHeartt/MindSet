@@ -34,7 +34,7 @@
         <ul class="menu-links">
             <li onclick="showSection('tasks')">📑 MISSÕES DIÁRIAS</li>
             <li onclick="showSection('history')">📅 CALENDÁRIO</li>
-            <li onclick="ativarNotificacoesManual()" style="color: #ffcc00; font-weight: bold;">🔔 ATIVAR ALERTAS</li>
+            <li onclick="ativarNotificacoesManual()">🔔 ATIVAR ALERTAS</li>
             <li onclick="showSection('contribute')">☕ APOIAR</li>
             <li onclick="confirmReset()" class="reset-link">⚠️ RESETAR TUDO</li>
         </ul>
@@ -42,27 +42,32 @@
     </nav>
 
     <header class="hud-header">
-        <button class="menu-btn" onclick="toggleMenu()">☰</button>
+        <button class="menu-btn" id="main-menu-trigger" onclick="toggleMenu()">☰</button>
         <div class="user-meta">
             <span id="user-rank" class="rank-badge">---</span>
             <h1 id="user-name-display">USUÁRIO</h1>
         </div>
-        <div class="xp-container">
-            <div class="xp-bar-wrapper"><div id="xp-fill" class="xp-fill"></div></div>
+        <div class="xp-container" id="xp-hud">
+            <div class="xp-bar-wrapper">
+                <div id="xp-fill" class="xp-fill"></div>
+            </div>
             <span id="level-display">LVL 1</span>
         </div>
     </header>
 
     <main class="hud-main">
+        
         <div id="section-tasks" class="content-section active">
-            <section class="daily-quote"><p id="quote-text">"Preparando sistema..."</p></section>
+            <section class="daily-quote" id="quote-area">
+                <p id="quote-text">"Preparando sistema..."</p>
+            </section>
             <h2 class="section-title">MISSÕES DE HOJE</h2>
             <div id="task-list" class="task-list"></div>
         </div>
 
         <div id="section-history" class="content-section">
             <h2 class="section-title">HISTÓRICO</h2>
-            <div class="calendar-card">
+            <div class="calendar-card" id="calendar-area">
                 <div class="calendar-header">
                     <button onclick="changeMonth(-1)">❮</button>
                     <h4 id="calendar-month-year">---</h4>
@@ -79,18 +84,27 @@
         <div id="section-contribute" class="content-section">
             <h2 class="section-title">APOIAR</h2>
             <div class="contribute-card">
-                <p>O MindSet é um projeto independente. Considere apoiar o desenvolvimento.</p>
+                <span class="icon-coffee">☕</span>
+                <p class="support-text">
+                    O <strong>MindSet</strong> é um projeto independente. Seu apoio ajuda a manter o sistema ativo e financia novas atualizações para sua evolução.
+                </p>
                 <div class="pix-box">
-                    <code>a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
-                    <button class="btn-copy" onclick="copyPix()">COPIAR PIX</button>
+                    <label>CHAVE PIX (E-MAIL)</label>
+                    <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
+                    <button class="btn-copy" onclick="copyPix()">
+                        <span>📋</span> COPIAR CHAVE PIX
+                    </button>
                 </div>
+                <p class="support-footer">Qualquer valor contribui com o projeto.</p>
             </div>
         </div>
     </main>
 
     <footer class="hud-footer">
-        <div class="streak-pill">🔥 <span id="streak-count">0</span> DIAS</div>
+        <div class="streak-pill" id="streak-hud">🔥 <span id="streak-count">0</span> DIAS</div>
     </footer>
+
+    <div id="spotlight-overlay" class="spotlight-overlay"></div>
 
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
@@ -103,11 +117,12 @@
     <script>
         (function() {
             const v = Date.now();
-            // Atualiza CSS
+            
+            // Força atualização do CSS
             document.getElementById('app-css').href = `css/app.css?v=${v}`;
 
-            // Lista de scripts para carregar na ordem correta
-            const assets = [
+            // Lista ordenada de scripts
+            const scripts = [
                 'js/setups/patriarca.js', 'js/setups/matriarca.js', 'js/setups/cavalheiro.js',
                 'js/setups/dama.js', 'js/setups/devoto.js', 'js/setups/devota.js',
                 'js/setups/ceo_ele.js', 'js/setups/ceo_ela.js', 'js/setups/militar_ele.js',
@@ -115,13 +130,14 @@
                 'js/setups/atleta_ele.js', 'js/setups/atleta_ela.js', 'js/setups/zen.js',
                 'js/setups/estrategista.js', 'js/setups/minimalista.js',
                 'js/notifications.js', 
-                'js/app.js'
+                'js/app.js',
+                'js/tour.js' // O Tour deve ser o último a carregar
             ];
 
-            assets.forEach(src => {
+            scripts.forEach(src => {
                 const s = document.createElement('script');
                 s.src = `${src}?v=${v}`;
-                s.async = false; // Importante para manter a ordem
+                s.async = false; // Mantém a ordem de dependência
                 document.body.appendChild(s);
             });
         })();
