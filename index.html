@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MindSet | Inicialização</title>
-    <link rel="stylesheet" href="css/main.css">
+    
+    <script>
+        document.write('<link rel="stylesheet" href="css/main.css?v=' + new Date().getTime() + '">');
+    </script>
+
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -60,8 +64,7 @@
                 <label>IDADE</label>
                 <div class="age-selector-container">
                     <div class="age-selection-marker"></div>
-                    <div class="age-carousel-track" id="age-carousel-track">
-                        </div>
+                    <div class="age-carousel-track" id="age-carousel-track"></div>
                 </div>
             </div>
 
@@ -71,15 +74,12 @@
 
     <section id="step-carousel" class="screen">
         <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
-
         <div class="carousel-header">
             <span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:
         </div>
-        
         <div class="carousel-wrapper">
             <div class="carousel-container" id="carousel-list"></div>
         </div>
-
         <div class="carousel-footer">
             <p style="font-size: 0.7rem; opacity: 0.5; margin-bottom: 15px;">DESLIZE PARA OS LADOS</p>
             <button class="btn-confirm" onclick="confirmSelection()">INICIAR MINDSET</button>
@@ -98,12 +98,14 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
     <script>
-      // Service Worker para PWA Offline
+        document.write('<script src="js/main.js?v=' + new Date().getTime() + '"><\/script>');
+    </script>
+
+    <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
-          .then(() => console.log("MindSet pronto para uso offline!"))
+          .then(() => console.log("MindSet pronto!"))
           .catch(err => console.log("Erro no SW:", err));
       }
     </script>
