@@ -1,21 +1,33 @@
 {
-  "name": "MindSet HUD",
-  "short_name": "MindSet",
-  "description": "Sistema de evolução pessoal e gerenciamento de missões.",
-  "start_url": "index.html",
-  "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#007bff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "MindSet",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "MindSet",
+  "start_url": "index.html",
+  "theme_color": "#1d1d1d",
   "icons": [
     {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "https://ravennheartt.github.io/MindSet/assets/icone-ios.png",
+      "type": "image/png",
+      "sizes": "409x409",
+      "isSquare": true,
+      "isPng": true,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 409,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
     }
+  ],
+  "description": "Sistema de evolução pessoal e gerenciamento de missões diárias para construção de uma nova mentalidade.",
+  "id": "MindSet",
+  "lang": "pt",
+  "categories": [
+    "lifestyle",
+    "productivity"
   ]
 }
