@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MindSet | Inicialização</title>
     
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" id="main-css" href="css/main.css">
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,11 +20,8 @@
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
           serviceWorkerPath: "OneSignalSDKWorker.js",
-          // Permite testar via localhost no PC sem erro de segurança
-          allowLocalhostAsSecureOrigin: true, 
+          allowLocalhostAsSecureOrigin: true
         });
-        
-        // Tenta disparar o prompt automaticamente
         OneSignal.Notifications.showSlidedownPrompt();
       });
     </script>
@@ -34,9 +31,7 @@
     <section id="step-welcome" class="screen active">
         <div class="form-container" style="text-align: center;">
             <h1 class="logo">MindSet</h1>
-            <p class="welcome-text">
-                Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.
-            </p>
+            <p class="welcome-text">Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.</p>
             <button class="btn-main" onclick="startOnboarding()">COMEÇAR</button>
         </div>
     </section>
@@ -44,12 +39,10 @@
     <section id="step-registration" class="screen">
         <div class="form-container">
             <h1 class="logo" style="font-size: 2rem; margin-bottom: 20px;">MindSet</h1>
-            
             <div class="input-group" id="group-name">
                 <label>COMO DEVEMOS TE CHAMAR?</label>
                 <input type="text" id="user-name" placeholder="Digite seu nome ou apelido...">
             </div>
-
             <div class="input-group" id="group-gender">
                 <label>GÊNERO</label>
                 <div class="gender-toggle-wrapper">
@@ -59,32 +52,23 @@
                     <label for="gender-toggle" class="gender-btn btn-ela">ELA</label>
                 </div>
             </div>
-
             <div class="input-group" id="group-age">
                 <label>IDADE</label>
                 <div class="age-selector-container">
                     <div class="age-selection-marker"></div>
-                    <div class="age-carousel-track" id="age-carousel-track">
-                        </div>
+                    <div class="age-carousel-track" id="age-carousel-track"></div>
                 </div>
             </div>
-
             <button class="btn-main" onclick="nextStep()">AVANÇAR</button>
         </div>
     </section>
 
     <section id="step-carousel" class="screen">
         <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
-
-        <div class="carousel-header">
-            <span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:
-        </div>
-        
+        <div class="carousel-header"><span id="welcome-name"></span>, ESCOLHA SEU SETUP:</div>
         <div class="carousel-wrapper">
-            <div class="carousel-container" id="carousel-list">
-                </div>
+            <div class="carousel-container" id="carousel-list"></div>
         </div>
-
         <div class="carousel-footer">
             <p style="font-size: 0.7rem; opacity: 0.5; margin-bottom: 15px;">DESLIZE PARA OS LADOS</p>
             <button class="btn-confirm" onclick="confirmSelection()">INICIAR MINDSET</button>
@@ -103,7 +87,17 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
-
+    <script>
+        (function() {
+            const v = Date.now();
+            // Atualiza o CSS
+            document.getElementById('main-css').href = `css/main.css?v=${v}`;
+            // Injeta o JS
+            const s = document.createElement('script');
+            s.src = `js/main.js?v=${v}`;
+            s.async = false;
+            document.body.appendChild(s);
+        })();
+    </script>
 </body>
 </html>
