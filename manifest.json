@@ -1,33 +1,53 @@
 {
-  "background_color": "#000000",
-  "dir": "ltr",
-  "display": "standalone",
-  "name": "MindSet",
-  "orientation": "portrait",
-  "scope": "/",
+  "id": "com.mindset.app",
+  "name": "MindSet | Evolução Pessoal",
   "short_name": "MindSet",
-  "start_url": "index.html",
-  "theme_color": "#1d1d1d",
+  "description": "Sistema de evolução pessoal e gerenciamento de missões diárias para construção de uma nova mentalidade.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["lifestyle", "productivity"],
+  "start_url": "./index.html?source=pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "scope": "/",
   "icons": [
     {
-      "src": "https://ravennheartt.github.io/MindSet/assets/icone.png",
+      "src": "assets/icone-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "409x409",
-      "isSquare": true,
-      "isPng": true,
-      "isWebp": false,
-      "isJpg": false,
-      "width": 409,
-      "is512x512": false,
-      "is256x256": false,
-      "is192x192": false
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icone-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "description": "Sistema de evolução pessoal e gerenciamento de missões diárias para construção de uma nova mentalidade.",
-  "id": "MindSet",
-  "lang": "pt",
-  "categories": [
-    "lifestyle",
-    "productivity"
+  "screenshots": [
+    {
+      "src": "assets/screenshot-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela Inicial do MindSet"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Missões",
+      "short_name": "Missões",
+      "description": "Acesse suas missões diárias rapidamente",
+      "url": "/app.html#missoes",
+      "icons": [{ "src": "assets/icone-missoes.png", "sizes": "192x192" }]
+    }
   ]
 }
