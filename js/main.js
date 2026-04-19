@@ -1,5 +1,5 @@
 /**
- * MindSet - Lógica de Configuração Inicial
+ * MindSet - Lógica de Configuração Inicial e Instalação PWA
  */
 
 const setups = {
@@ -36,6 +36,7 @@ let currentSetupId = "";
 let selectedGender = "ele";
 let loopItems = [];
 let userSelectedAge = 15;
+let deferredPrompt; // Variável para o prompt de instalação
 
 const body = document.body;
 
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initAgeCarousel();
     setupGenderSync();
+    initPwaInstallLogic(); // Inicializa a lógica do FAB de instalação
 });
 
 // --- 1. SPOTLIGHT (COM TEMPO REDUZIDO E SAÍDA SUAVE) ---
@@ -71,27 +73,23 @@ function runSpotlight() {
 
     function nextSpot() {
         if (step >= targets.length) {
-            // Saída Suave: Fade out antes de esconder
             overlay.style.opacity = '0';
             setTimeout(() => {
                 overlay.style.display = 'none';
                 overlay.style.clipPath = 'none';
-            }, 600); // Tempo do fade out
+            }, 600);
             return;
         }
         
         const el = document.getElementById(targets[step]);
         if (el) {
             const rect = el.getBoundingClientRect();
-            const p = 10; // padding do foco
+            const p = 10;
             const t = rect.top - p, l = rect.left - p, r = rect.right + p, b = rect.bottom + p;
-            
-            // Transição de movimento do foco (definida no CSS como 0.5s)
             overlay.style.clipPath = `polygon(0% 0%, 0% 100%, 100% 100%, 100% 0%, 0% 0%, ${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px, ${l}px ${t}px)`;
         }
         
         step++;
-        // Ajuste de tempo: 1200ms é o suficiente para notar sem cansar
         setTimeout(nextSpot, 1200); 
     }
     nextSpot();
@@ -331,4 +329,55 @@ function confirmSelection() {
             window.location.href = 'app.html';
         }
     );
+}
+
+// --- 7. NOVA LÓGICA DE INSTALAÇÃO PWA (FAB + POPUP) ---
+function initPwaInstallLogic() {
+    const installContainer = document.getElementById('pwa-install-container');
+    const installFab = document.getElementById('install-fab');
+    const installPopup = document.getElementById('install-popup');
+    const btnDoInstall = document.getElementById('btn-do-install');
+    const closePopup = document.querySelector('.close-popup');
+
+    if (!installContainer || !installFab) return;
+
+    // Escuta o evento do navegador que permite a instalação
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); // Impede o banner padrão do Chrome
+        deferredPrompt = e; // Salva o evento para disparar no clique do botão
+        
+        // Só mostra o FAB se o app já não estiver rodando como standalone
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            installContainer.style.display = 'block';
+        }
+    });
+
+    // Abrir o popup ao clicar no FAB
+    installFab.addEventListener('click', () => {
+        installPopup.style.display = 'block';
+        installFab.style.display = 'none'; // Esconde o ícone enquanto lê o popup
+    });
+
+    // Fechar o popup
+    closePopup.addEventListener('click', () => {
+        installPopup.style.display = 'none';
+        installFab.style.display = 'flex';
+    });
+
+    // Executar a instalação ao clicar no botão do popup
+    btnDoInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Usuário escolheu: ${outcome}`);
+            deferredPrompt = null;
+            installContainer.style.display = 'none';
+        }
+    });
+
+    // Se o app for instalado por outros meios, esconde tudo
+    window.addEventListener('appinstalled', () => {
+        installContainer.style.display = 'none';
+        deferredPrompt = null;
+    });
 }
