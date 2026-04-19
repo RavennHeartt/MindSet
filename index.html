@@ -22,9 +22,12 @@
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "sw.js", // Apontando para o seu SW principal unificado
+          serviceWorkerPath: "sw.js", 
+          // TRAVA O PROMPT AUTOMÁTICO E O REGISTRO DO TOKEN ATÉ O CONSENTIMENTO
+          requiresUserPrivacyConsent: true,
+          allowLocalhostAsSecureOrigin: true,
           promptOptions: {
-            slidedown: { enabled: false } // Não pede permissão ao abrir o app
+            slidedown: { enabled: false }
           }
         });
       });
@@ -36,7 +39,6 @@
         <div id="install-card">
             <div class="install-content">
                 <h1 class="install-logo">MINDSET</h1>
-                
                 <div class="stage-premium">
                     <div class="icon-box-premium">
                         <svg class="svg-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -46,11 +48,7 @@
                         </svg>
                     </div>
                 </div>
-
-                <p class="install-text">
-                    Construa sua nova mentalidade com a experiência completa de aplicativo.
-                </p>
-
+                <p class="install-text">Construa sua nova mentalidade com a experiência completa de aplicativo.</p>
                 <div class="install-actions">
                     <button id="btn-do-install" class="btn-install-premium">INSTALAR AGORA</button>
                     <button id="btn-later" class="btn-later-premium">AGORA NÃO</button>
@@ -62,9 +60,7 @@
     <section id="step-welcome" class="screen active">
         <div class="form-container" style="text-align: center;">
             <h1 class="logo">MindSet</h1>
-            <p class="welcome-text">
-                Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.
-            </p>
+            <p class="welcome-text">Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.</p>
             <button class="btn-main" onclick="startOnboarding()">COMEÇAR</button>
         </div>
     </section>
@@ -72,12 +68,10 @@
     <section id="step-registration" class="screen gender-ele">
         <div class="form-container">
             <h1 class="logo" style="font-size: 2rem; margin-bottom: 20px;">MindSet</h1>
-            
             <div class="input-group" id="group-name">
                 <label>COMO DEVEMOS TE CHAMAR?</label>
                 <input type="text" id="user-name" placeholder="Digite seu nome ou apelido..." autocomplete="off">
             </div>
-
             <div class="input-group" id="group-gender">
                 <label>GÊNERO</label>
                 <div class="gender-toggle-wrapper">
@@ -87,7 +81,6 @@
                     <label for="gender-toggle" class="gender-btn btn-ela">ELA</label>
                 </div>
             </div>
-
             <div class="input-group" id="group-age">
                 <label>IDADE</label>
                 <div class="age-selector-container">
@@ -95,16 +88,13 @@
                     <div class="age-carousel-track" id="age-carousel-track"></div>
                 </div>
             </div>
-
             <button class="btn-main" onclick="nextStep()">AVANÇAR</button>
         </div>
     </section>
 
     <section id="step-carousel" class="screen">
         <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
-        <div class="carousel-header">
-            <span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:
-        </div>
+        <div class="carousel-header"><span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:</div>
         <div class="carousel-wrapper">
             <div class="carousel-container" id="carousel-list"></div>
         </div>
@@ -121,7 +111,7 @@
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title">AVISO</h3>
-            <p id="modal-message">Mensagem aqui.</p>
+            <p id="modal-message"></p>
             <div id="modal-buttons" class="modal-buttons"></div>
         </div>
     </div>
@@ -135,11 +125,10 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log("MindSet SW Unificado Ativo"))
-              .catch(err => console.log("Erro no SW:", err));
+              .then(reg => console.log("MindSet SW Ativo"))
+              .catch(err => console.error("Erro no SW:", err));
         });
       }
     </script>
-
 </body>
 </html>
