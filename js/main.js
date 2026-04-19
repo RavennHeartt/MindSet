@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initAgeCarousel();
     setupGenderSync();
-    initPwaInstallLogic(); // Inicializa a lógica do FAB de instalação
+    initPwaInstallLogic(); // Inicializa a lógica do FAB/Hero de instalação
 });
 
 // --- 1. SPOTLIGHT (COM TEMPO REDUZIDO E SAÍDA SUAVE) ---
@@ -331,53 +331,52 @@ function confirmSelection() {
     );
 }
 
-// --- 7. NOVA LÓGICA DE INSTALAÇÃO PWA (FAB + POPUP) ---
+// --- 7. NOVA LÓGICA DE INSTALAÇÃO PWA (HERO PROMPT + TRANSICÃO FAB) ---
 function initPwaInstallLogic() {
-    const installContainer = document.getElementById('pwa-install-container');
-    const installFab = document.getElementById('install-fab');
-    const installPopup = document.getElementById('install-popup');
-    const btnDoInstall = document.getElementById('btn-do-install');
-    const closePopup = document.querySelector('.close-popup');
+    const container = document.getElementById('pwa-install-container');
+    const btnInstall = document.getElementById('btn-do-install');
+    const btnLater = document.getElementById('btn-later');
+    const card = document.getElementById('install-card');
 
-    if (!installContainer || !installFab) return;
+    if (!container || !card) return;
 
-    // Escuta o evento do navegador que permite a instalação
     window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault(); // Impede o banner padrão do Chrome
-        deferredPrompt = e; // Salva o evento para disparar no clique do botão
+        e.preventDefault();
+        deferredPrompt = e;
         
-        // Só mostra o FAB se o app já não estiver rodando como standalone
+        // Se não estiver instalado, mostra a tela cheia inicial
         if (!window.matchMedia('(display-mode: standalone)').matches) {
-            installContainer.style.display = 'block';
+            container.style.display = 'flex';
         }
     });
 
-    // Abrir o popup ao clicar no FAB
-    installFab.addEventListener('click', () => {
-        installPopup.style.display = 'block';
-        installFab.style.display = 'none'; // Esconde o ícone enquanto lê o popup
-    });
-
-    // Fechar o popup
-    closePopup.addEventListener('click', () => {
-        installPopup.style.display = 'none';
-        installFab.style.display = 'flex';
-    });
-
-    // Executar a instalação ao clicar no botão do popup
-    btnDoInstall.addEventListener('click', async () => {
+    // Ação de Instalar (Tela Cheia ou FAB)
+    btnInstall.addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`Usuário escolheu: ${outcome}`);
+            if (outcome === 'accepted') {
+                container.style.display = 'none';
+            }
             deferredPrompt = null;
-            installContainer.style.display = 'none';
         }
     });
 
-    // Se o app for instalado por outros meios, esconde tudo
+    // Ação de "Agora não" -> Encolhe suavemente até virar o FAB
+    btnLater.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita conflitos de clique
+        container.classList.add('minimized');
+    });
+
+    // Se clicar no FAB (card minimizado), tenta abrir o prompt de instalação
+    card.addEventListener('click', () => {
+        if (container.classList.contains('minimized') && deferredPrompt) {
+            btnInstall.click();
+        }
+    });
+
     window.addEventListener('appinstalled', () => {
-        installContainer.style.display = 'none';
+        container.style.display = 'none';
         deferredPrompt = null;
     });
 }
