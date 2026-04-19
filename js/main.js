@@ -371,11 +371,26 @@ function confirmSelection() {
                 nome: document.getElementById('user-name').value, 
                 setup: currentSetupId, 
                 genero: selectedGender, 
-                idade: userSelectedAge 
+                idade: userSelectedAge,
+                level: 1, // Dados iniciais para tags
+                streak: 0
             };
+            
             localStorage.setItem('mindset_chosen', currentSetupId);
             localStorage.setItem('mindset_data', JSON.stringify(data));
-            window.location.href = 'app.html';
+            
+            // Define global para o OneSignal ler
+            window.userData = data; 
+            
+            // Inicializa notificações (External ID + Tags + Permission)
+            if (typeof initNotifications === "function") {
+                initNotifications();
+            }
+
+            // Delay estratégico para o OneSignal processar antes do redirect
+            setTimeout(() => {
+                window.location.href = 'app.html';
+            }, 1800);
         }
     );
 }

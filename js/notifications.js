@@ -1,5 +1,5 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v1.3 (FULL ROBUST)
+ * MINDSET - NOTIFICATIONS ENGINE v1.4 (FINAL OPTIMIZED)
  * Gestão de vozes, IDs externos, Tags e monitorização de missões
  */
 
@@ -30,98 +30,95 @@ function initNotifications() {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         
-        // 1. Gera um ID único para este utilizador (External ID)
-        const cleanName = userData.nome.toLowerCase().replace(/\s/g, '_');
-        await OneSignal.login(cleanName); 
+        // Tenta pegar dados do localStorage caso não existam no objeto global
+        const localData = JSON.parse(localStorage.getItem('mindset_data'));
+        const activeUser = window.userData || localData;
 
-        // 2. Sincroniza as Tags (Informação de HUD para o servidor)
-        await OneSignal.User.addTags({
-            "nome_usuario": userData.nome,
-            "setup_ativo": userData.setup,
-            "nivel_atual": userData.level,
-            "streak_atual": userData.streak
-        });
+        if (!activeUser || !activeUser.nome) {
+            console.log("MindSet Notif: Aguardando dados do usuário...");
+            return;
+        }
 
-        console.log("MindSet Notif: Perfil sincronizado para " + cleanName);
+        // Formata o ID (External ID)
+        const cleanName = activeUser.nome.toLowerCase().trim().replace(/\s/g, '_');
+
+        try {
+            // 1. Vincula o External ID antes de pedir permissão
+            await OneSignal.login(cleanName); 
+
+            // 2. Sincroniza as Tags (Informação de HUD para segmentação no painel)
+            await OneSignal.User.addTags({
+                "nome_usuario": activeUser.nome,
+                "setup_ativo": activeUser.setup,
+                "nivel_atual": String(activeUser.level || 1),
+                "streak_atual": String(activeUser.streak || 0)
+            });
+
+            // 3. Agora sim, solicita a permissão (o Slidedown aparecerá aqui se necessário)
+            await OneSignal.Notifications.requestPermission();
+
+            console.log("MindSet Notif: Perfil sincronizado e login realizado para " + cleanName);
+        } catch (error) {
+            console.error("Erro na inicialização do OneSignal:", error);
+        }
     });
 
-    // Inicia a verificação de missões em tempo real
+    // Mantém a verificação local caso o app esteja aberto
     setInterval(checkNotificationSchedule, 60000);
 }
 
 /**
- * Monitoriza o relógio para disparar as vozes do sistema
+ * Monitoriza o relógio para disparar as vozes se o app estiver aberto
  */
 function checkNotificationSchedule() {
+    const localData = JSON.parse(localStorage.getItem('mindset_data'));
+    const activeUser = window.userData || localData;
+    if (!activeUser) return;
+
     const agora = new Date();
     const h = agora.getHours();
     const m = agora.getMinutes();
 
-    // Executa apenas na "hora cheia" (ex: 14:00)
-    if (m !== 0) return;
+    if (m !== 0) return; // Só roda na hora cheia
 
-    const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
-    const todasHabitos = Object.values(currentSetup.habitos).flat();
-    
-    // Filtra apenas as missões que deveriam ser feitas hoje e NÃO foram concluídas
-    const pendentes = todasHabitos.filter(h => 
-        userData.dailyTaskIds.includes(h.id) && 
-        !userData.completedTodayIds.includes(h.id)
-    );
-
+    const voice = mindsetVoices[activeUser.setup] || mindsetVoices['patriarca'];
     let titulo = "MINDSET";
     let mensagem = "";
 
-    // GATILHOS DE HORÁRIO
+    // GATILHOS DE HORÁRIO (Lógica Local para App em Primeiro Plano)
     if (h === 9) {
         titulo = "SISTEMA OPERACIONAL";
         mensagem = voice.morning;
     } 
     else if (h === 14) {
-        if (pendentes.length > 0) {
-            titulo = "ALERTAS DE PENDÊNCIA";
-            const listaTxt = pendentes.map(p => `• ${p.task}`).join('\n');
-            mensagem = `${userData.nome}, ${voice.afternoon}\nFalta cumprir:\n${listaTxt}`;
-        }
+        titulo = "ALERTAS DE PENDÊNCIA";
+        mensagem = `${activeUser.nome}, ${voice.afternoon}`;
     } 
     else if (h === 22) {
         titulo = "ANÁLISE DO DIA";
-        mensagem = (userData.tasksDoneToday >= 3) ? voice.night_win : voice.night_loss;
+        mensagem = (activeUser.tasksDoneToday >= 3) ? voice.night_win : voice.night_loss;
     }
 
-    // Apenas para log interno. O envio PUSH real é gerido pelo servidor.
     if (mensagem !== "") {
-        console.log(`[PUSH SCHEDULED] ${titulo}: ${mensagem}`);
+        console.log(`[LOCAL NOTIF LOG] ${titulo}: ${mensagem}`);
     }
 }
 
 /**
- * Função do Botão "ATIVAR NOTIFICAÇÕES" (Feedback Visual)
+ * Função do Botão Manual (Configurações ou Erros)
  */
 window.ativarNotificacoesManual = () => {
-    console.log("A solicitar permissão...");
-    
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            // Abre o prompt nativo do Android/Chrome
             await OneSignal.Notifications.requestPermission();
-            
-            // Verifica o resultado
             if (OneSignal.Notifications.permission) {
-                window.showModal(
-                    "SISTEMA ATIVO", 
-                    "As notificações foram autorizadas. O MindSet agora pode enviar alertas para o seu HUD."
-                );
+                window.showModal("SISTEMA ATIVO", "As notificações agora estão sincronizadas com seu HUD.");
             } else {
-                window.showModal(
-                    "AVISO", 
-                    "Permissão negada. Para receber alertas, por favor ative as notificações nas definições do seu navegador/telemóvel."
-                );
+                window.showModal("AVISO", "A permissão foi negada. Verifique as configurações do seu navegador.");
             }
         } catch (error) {
-            console.error("Erro OneSignal:", error);
-            window.showModal("ERRO", "Não foi possível conectar ao motor de notificações.");
+            console.error("Erro OneSignal Manual:", error);
         }
     });
 };
