@@ -23,7 +23,7 @@
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "OneSignalSDKWorker.js",
+          serviceWorkerPath: "sw.js",
         });
         OneSignal.Notifications.showSlidedownPrompt();
       });
