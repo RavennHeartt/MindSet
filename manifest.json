@@ -1,6 +1,6 @@
 {
   "id": "com.mindset.app",
-  "name": "MindSet | Evolução Pessoal",
+  "name": "MindSet",
   "short_name": "MindSet",
   "description": "Sistema de evolução pessoal e gerenciamento de missões diárias para construção de uma nova mentalidade.",
   "lang": "pt-BR",
@@ -34,11 +34,32 @@
   ],
   "screenshots": [
     {
-      "src": "assets/screenshot-mobile.png",
+      "src": "assets/screenshot-mobile1.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Tela Inicial do MindSet"
+    },
+    {
+      "src": "assets/screenshot-mobile2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Lista de Setups do MindSet"
+    },
+    {
+      "src": "assets/screenshot-mobile3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela de Calendário do MindSet"
+    } 
+    {
+      "src": "assets/screenshot-mobile4.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela de Contribuição do MindSet"
     }
   ],
   "shortcuts": [
