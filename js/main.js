@@ -36,21 +36,70 @@ let currentSetupId = "";
 let selectedGender = "ele";
 let loopItems = [];
 let userSelectedAge = 15;
-let deferredPrompt; // Variável para o prompt de instalação
+let deferredPrompt; 
 
 const body = document.body;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Se o usuário já configurou o app, pula para a tela principal
     if (localStorage.getItem('mindset_chosen')) {
         window.location.href = 'app.html';
         return;
     }
+    
     initAgeCarousel();
     setupGenderSync();
-    initPwaInstallLogic(); // Inicializa a lógica do FAB/Hero de instalação
+    initPwaInstallLogic();
 });
 
-// --- 1. SPOTLIGHT (COM TEMPO REDUZIDO E SAÍDA SUAVE) ---
+// --- 1. LÓGICA DE INSTALAÇÃO PWA ---
+function initPwaInstallLogic() {
+    const container = document.getElementById('pwa-install-container');
+    const btnInstall = document.getElementById('btn-do-install');
+    const btnLater = document.getElementById('btn-later');
+    const card = document.getElementById('install-card');
+
+    if (!container || !card) return;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Se não estiver em modo standalone, mostra o Hero Prompt
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            container.classList.add('visible');
+        }
+    });
+
+    btnInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                container.classList.remove('visible');
+            }
+            deferredPrompt = null;
+        }
+    });
+
+    btnLater.addEventListener('click', (e) => {
+        e.stopPropagation();
+        container.classList.add('minimized');
+    });
+
+    card.addEventListener('click', () => {
+        if (container.classList.contains('minimized') && deferredPrompt) {
+            btnInstall.click();
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        container.style.display = 'none';
+        deferredPrompt = null;
+    });
+}
+
+// --- 2. SPOTLIGHT (ONBOARDING) ---
 function startOnboarding() {
     const welcome = document.getElementById('step-welcome');
     const registration = document.getElementById('step-registration');
@@ -95,7 +144,7 @@ function runSpotlight() {
     nextSpot();
 }
 
-// --- 2. CARROSSEL DE IDADE ---
+// --- 3. CARROSSEL DE IDADE ---
 function initAgeCarousel() {
     const track = document.getElementById('age-carousel-track');
     if (!track) return;
@@ -141,7 +190,7 @@ function initAgeCarousel() {
     });
 }
 
-// --- 3. SINCRONIZAÇÃO DE GÊNERO ---
+// --- 4. SINCRONIZAÇÃO DE GÊNERO ---
 function setupGenderSync() {
     const toggle = document.getElementById('gender-toggle');
     const regSection = document.getElementById('step-registration');
@@ -155,7 +204,7 @@ function setupGenderSync() {
     });
 }
 
-// --- 4. NAVEGAÇÃO ---
+// --- 5. NAVEGAÇÃO ---
 function nextStep() {
     const nameInput = document.getElementById('user-name');
     const nome = nameInput ? nameInput.value.trim() : "";
@@ -180,7 +229,7 @@ function prevStep() {
     document.getElementById('step-registration').classList.add('active');
 }
 
-// --- 5. CARROSSEL DE SETUPS ---
+// --- 6. CARROSSEL DE SETUPS ---
 function renderCarousel() {
     const list = document.getElementById('carousel-list');
     const items = setups[selectedGender];
@@ -242,7 +291,7 @@ function updatePositionInstant(list) {
     currentSetupId = loopItems[currentIndex].id;
 }
 
-// --- 6. DEMO GUIDE & MODAL ---
+// --- 7. DEMO GUIDE & MODAL ---
 function runDemoGuide() {
     const guide = document.getElementById('demo-guide');
     const list = document.getElementById('carousel-list');
@@ -329,54 +378,4 @@ function confirmSelection() {
             window.location.href = 'app.html';
         }
     );
-}
-
-// --- 7. NOVA LÓGICA DE INSTALAÇÃO PWA (HERO PROMPT + TRANSICÃO FAB) ---
-function initPwaInstallLogic() {
-    const container = document.getElementById('pwa-install-container');
-    const btnInstall = document.getElementById('btn-do-install');
-    const btnLater = document.getElementById('btn-later');
-    const card = document.getElementById('install-card');
-
-    if (!container || !card) return;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        // Se não estiver instalado, mostra a tela cheia inicial
-        if (!window.matchMedia('(display-mode: standalone)').matches) {
-            container.style.display = 'flex';
-        }
-    });
-
-    // Ação de Instalar (Tela Cheia ou FAB)
-    btnInstall.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                container.style.display = 'none';
-            }
-            deferredPrompt = null;
-        }
-    });
-
-    // Ação de "Agora não" -> Encolhe suavemente até virar o FAB
-    btnLater.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evita conflitos de clique
-        container.classList.add('minimized');
-    });
-
-    // Se clicar no FAB (card minimizado), tenta abrir o prompt de instalação
-    card.addEventListener('click', () => {
-        if (container.classList.contains('minimized') && deferredPrompt) {
-            btnInstall.click();
-        }
-    });
-
-    window.addEventListener('appinstalled', () => {
-        container.style.display = 'none';
-        deferredPrompt = null;
-    });
 }
