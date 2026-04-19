@@ -28,7 +28,6 @@
         OneSignal.Notifications.showSlidedownPrompt();
       });
     </script>
-
 </head>
 <body id="main-body">
 
@@ -99,15 +98,35 @@
         </div>
     </div>
 
+    <div id="pwa-install-container" style="display: none;">
+        <div id="install-fab" class="fab">
+            <span class="fab-icon">↓</span>
+        </div>
+
+        <div id="install-popup" class="install-popup">
+            <div class="popup-content">
+                <span class="close-popup">×</span>
+                <div class="popup-header">
+                    <div class="app-icon-mini">M</div>
+                    <h3>Instalar MindSet</h3>
+                </div>
+                <p>Acesse mais rápido, receba notificações e use em tela cheia sem avisos de risco.</p>
+                <button id="btn-do-install" class="btn-main">INSTALAR AGORA</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.write('<script src="js/main.js?v=' + new Date().getTime() + '"><\/script>');
     </script>
 
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-          .then(() => console.log("MindSet pronto!"))
-          .catch(err => console.log("Erro no SW:", err));
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+              .then(reg => console.log("MindSet SW pronto em:", reg.scope))
+              .catch(err => console.log("Erro no SW:", err));
+        });
       }
     </script>
 
