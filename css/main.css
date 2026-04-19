@@ -42,17 +42,11 @@ body {
 }
 
 /* Estilo quando Masculino selecionado */
-#step-registration.gender-ele #user-name {
-    border-color: rgba(0, 123, 255, 0.4);
-    color: var(--blue);
-}
+#step-registration.gender-ele #user-name { border-color: rgba(0, 123, 255, 0.4); color: var(--blue); }
 #step-registration.gender-ele #user-name::placeholder { color: rgba(0, 123, 255, 0.4); }
 
 /* Estilo quando Feminino selecionado */
-#step-registration.gender-ela #user-name {
-    border-color: rgba(255, 51, 161, 0.4);
-    color: var(--pink);
-}
+#step-registration.gender-ela #user-name { border-color: rgba(255, 51, 161, 0.4); color: var(--pink); }
 #step-registration.gender-ela #user-name::placeholder { color: rgba(255, 51, 161, 0.4); }
 
 
@@ -156,3 +150,39 @@ body {
 .btn-modal { padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
 .btn-modal-ok { background: #fff; color: #000; }
 .btn-modal-cancel { background: #111; color: #fff; border: 1px solid #222; }
+
+/* --- NOVO: SISTEMA DE INSTALAÇÃO PWA (FAB + POPUP) --- */
+.fab {
+    position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px;
+    background: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4); z-index: 9999; cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.fab:active { transform: scale(0.9); }
+.fab-icon { color: white; font-size: 28px; font-weight: bold; }
+
+.install-popup {
+    position: fixed; bottom: 100px; right: 25px; width: 280px;
+    background: #111; border: 1px solid #222; border-radius: 20px; padding: 25px;
+    display: none; z-index: 9998; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    animation: slideUp 0.4s ease-out; backdrop-filter: blur(10px);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.popup-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+.app-icon-mini { 
+    width: 35px; height: 35px; background: #fff; color: #000; 
+    border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; 
+}
+.install-popup h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #fff; }
+.install-popup p { font-size: 0.85rem; color: #aaa; margin: 0 0 20px 0; line-height: 1.4; text-align: left; }
+.close-popup { position: absolute; top: 10px; right: 15px; font-size: 24px; color: #555; cursor: pointer; padding: 5px; }
+
+/* Esconder se já estiver no modo App */
+@media (display-mode: standalone) {
+    .fab, .install-popup { display: none !important; }
+}
