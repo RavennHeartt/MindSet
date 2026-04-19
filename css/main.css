@@ -157,22 +157,16 @@ body {
 .btn-modal-ok { background: #fff; color: #000; }
 .btn-modal-cancel { background: #111; color: #fff; border: 1px solid #222; }
 
-/* --- SISTEMA DE INSTALAÇÃO PWA (DARK ULTRA PREMIUM) --- */
+/* --- SISTEMA DE INSTALAÇÃO PWA (MELHORADO) --- */
 #pwa-install-container {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    z-index: 999999;
-    display: none; 
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.96); /* Preto profundo */
-    transition: all 1s cubic-bezier(0.19, 1, 0.22, 1);
+    position: fixed; inset: 0; z-index: 999999;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.96); 
+    transition: all 1s cubic-bezier(0.19, 1, 0.22, 1); /* Animação de encolhimento mantida aqui */
 }
 
 #pwa-install-container.visible { display: flex !important; }
 
-/* Estado FAB (Bolinha Branca Minimalista) */
 #pwa-install-container.minimized {
     width: 70px; height: 70px;
     top: auto; left: auto;
@@ -182,108 +176,98 @@ body {
 
 #install-card {
     width: 100%; height: 100%;
-    background: #0a0a0a; /* Card Dark */
-    border: 1px solid #1a1a1a;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    background: #0a0a0a; border: 1px solid #1a1a1a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     transition: all 1s cubic-bezier(0.19, 1, 0.22, 1);
-    cursor: pointer;
-    overflow: hidden;
-    position: relative;
+    cursor: pointer; overflow: hidden; position: relative;
 }
 
 #pwa-install-container.minimized #install-card {
     border-radius: 50%;
-    background: #ffffff; /* FAB branco para destaque */
+    background: #ffffff;
     border: none;
     box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 }
 
 .install-content {
-    text-align: center;
-    padding: 40px;
-    max-width: 320px;
-    color: #fff;
-    opacity: 1;
-    transition: opacity 0.5s;
+    text-align: center; padding: 40px; max-width: 320px;
+    color: #fff; opacity: 1; transition: opacity 0.5s;
 }
 
 #pwa-install-container.minimized .install-content {
-    display: none;
-    opacity: 0;
+    display: none; opacity: 0;
 }
 
-/* --- ÍCONE DOWNLOAD SOLID (GORDINHO) --- */
-.icon-download-solid {
-    width: 44px; height: 44px;
-    position: relative;
-    margin-bottom: 30px;
-    transition: transform 0.3s ease;
+/* ÍCONE PREMIUM COM ANIMAÇÕES */
+.download-icon-premium {
+    position: relative; width: 92px; height: 92px;
+    margin: 10px auto 30px; border-radius: 28px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 20px 45px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    animation: floatIcon 3.2s ease-in-out infinite;
 }
 
-/* Haste Central */
-.icon-download-solid::before {
-    content: '';
-    position: absolute;
-    width: 12px; height: 22px;
-    background: #fff;
-    left: 50%; top: 0;
-    transform: translateX(-50%);
-    border-radius: 3px;
+.download-icon-premium .arrow {
+    position: absolute; width: 8px; height: 35px; background: #fff;
+    border-radius: 4px; top: 22px; animation: arrowDrop 2.4s ease-in-out infinite;
 }
 
-/* Ponta da Seta (Triângulo Solid) */
-.icon-download-solid::after {
-    content: '';
-    position: absolute;
-    width: 0; height: 0;
-    border-left: 20px solid transparent;
-    border-right: 20px solid transparent;
-    border-top: 20px solid #fff;
-    bottom: 6px; left: 50%;
-    transform: translateX(-50%);
+.download-icon-premium .arrow::after {
+    content: ''; position: absolute; bottom: -10px; left: -10px;
+    width: 24px; height: 24px;
+    border-left: 8px solid #fff; border-bottom: 8px solid #fff;
+    transform: rotate(-45deg); border-radius: 5px;
 }
 
-/* Barra de Base */
-.icon-base {
-    position: absolute;
-    bottom: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 40px; height: 7px;
-    background: #fff;
-    border-radius: 3px;
+.download-icon-premium .tray {
+    position: absolute; bottom: 20px; width: 46px; height: 10px;
+    border-radius: 6px; background: #fff;
 }
 
-/* Ajuste do ícone para o FAB (Preto no Branco) */
-#pwa-install-container.minimized .icon-download-solid::before,
-#pwa-install-container.minimized .icon-download-solid::after,
-#pwa-install-container.minimized .icon-base {
-    background-color: #000;
-    border-top-color: #000;
+@keyframes arrowDrop {
+    0% { transform: translateY(-8px); opacity: .5; }
+    50% { transform: translateY(8px); opacity: 1; }
+    100% { transform: translateY(-8px); opacity: .5; }
 }
 
-#pwa-install-container.minimized .icon-download-solid {
-    transform: scale(0.55);
-    margin: 0;
+@keyframes floatIcon {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+    100% { transform: translateY(0); }
 }
 
-/* TEXTOS E BOTÕES */
-.install-logo { font-weight: 900; font-size: 3.2rem; letter-spacing: -3px; margin-bottom: 10px; color: #fff; }
+/* AJUSTE DO ÍCONE NO FAB */
+#pwa-install-container.minimized .download-icon-premium {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: #fff; animation: none; box-shadow: none; backdrop-filter: none;
+}
+
+#pwa-install-container.minimized .arrow,
+#pwa-install-container.minimized .arrow::after,
+#pwa-install-container.minimized .tray {
+    background: #000; border-color: #000;
+}
+
+#pwa-install-container.minimized .download-icon-premium .arrow {
+    transform: scale(0.6) translateY(5px);
+}
+
+/* TEXTOS E BOTÕES DE INSTALAÇÃO */
+.install-logo { font-weight: 900; font-size: 3.2rem; letter-spacing: -3px; margin-bottom: 10px; }
 .install-text { color: #666; font-size: 1.05rem; line-height: 1.5; margin-bottom: 40px; }
 
 .btn-install-premium {
-    background: #fff; color: #000; border: none;
-    padding: 20px; border-radius: 14px;
-    font-weight: 900; font-size: 1.1rem; width: 100%;
+    background: #fff; color: #000; border: none; padding: 20px;
+    border-radius: 14px; font-weight: 900; font-size: 1.1rem; width: 100%;
     cursor: pointer; transition: transform 0.2s;
 }
 
 .btn-install-premium:active { transform: scale(0.96); }
 
 .btn-later-premium {
-    background: none; border: none; color: #444;
-    margin-top: 25px; font-weight: bold; cursor: pointer;
-    text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;
+    background: none; border: none; color: #444; margin-top: 25px;
+    font-weight: bold; text-transform: uppercase; font-size: .8rem;
+    letter-spacing: 1px; cursor: pointer;
 }
