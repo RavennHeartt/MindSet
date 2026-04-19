@@ -42,10 +42,7 @@ body {
 }
 
 #step-registration.gender-ele #user-name { border-color: rgba(0, 123, 255, 0.4); color: var(--blue); }
-#step-registration.gender-ele #user-name::placeholder { color: rgba(0, 123, 255, 0.4); }
-
 #step-registration.gender-ela #user-name { border-color: rgba(255, 51, 161, 0.4); color: var(--pink); }
-#step-registration.gender-ela #user-name::placeholder { color: rgba(255, 51, 161, 0.4); }
 
 /* --- AGE SELECTOR --- */
 .age-selector-container {
@@ -61,8 +58,8 @@ body {
     border-radius: 16px; pointer-events: none; z-index: 10; transition: all 0.4s ease;
 }
 
-#step-registration.gender-ele .age-selection-marker { border-color: var(--blue); box-shadow: 0 0 20px rgba(0, 123, 255, 0.2); }
-#step-registration.gender-ela .age-selection-marker { border-color: var(--pink); box-shadow: 0 0 20px rgba(255, 51, 161, 0.2); }
+#step-registration.gender-ele .age-selection-marker { border-color: var(--blue); }
+#step-registration.gender-ela .age-selection-marker { border-color: var(--pink); }
 
 .age-carousel-track { 
     display: flex; align-items: center; overflow-x: scroll; height: 100%; width: 100%;
@@ -106,7 +103,6 @@ body {
 
 /* --- BOTÕES --- */
 .btn-main, .btn-confirm { width: 100%; background: #fff; color: #000; border: none; padding: 18px; border-radius: 12px; font-weight: 900; cursor: pointer; transition: transform 0.2s ease, opacity 0.2s ease; }
-.btn-main:active, .btn-confirm:active { transform: scale(0.98); opacity: 0.9; }
 .btn-back { position: absolute; top: 40px; left: 20px; background: none; color: #fff; border: none; font-weight: bold; z-index: 10; opacity: 0.6; }
 .carousel-footer { position: absolute; bottom: 8%; width: 100%; text-align: center; z-index: 2; }
 .btn-confirm { width: auto; padding: 15px 50px; border-radius: 50px; }
@@ -118,7 +114,6 @@ body {
     pointer-events: none; display: none;
     transition: clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
 }
-
 .demo-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: #000; z-index: 1000; opacity: 0; pointer-events: none; display: none; transition: opacity 0.8s ease;
@@ -143,13 +138,11 @@ body {
 .modal-content {
     background: #080808; border: 1px solid #111; padding: 35px; border-radius: 30px; text-align: center; width: 85%; max-width: 340px;
 }
-.modal-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 .btn-modal { padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
 .btn-modal-ok { background: #fff; color: #000; }
 .btn-modal-cancel { background: #111; color: #fff; border: 1px solid #222; }
 
-
-/* --- SISTEMA DE INSTALAÇÃO PWA (REESTILIZADO DARK MINIMALIST) --- */
+/* --- SISTEMA DE INSTALAÇÃO PWA (REVISADO) --- */
 #pwa-install-container {
     position: fixed; inset: 0; z-index: 999999;
     display: none; align-items: center; justify-content: center;
@@ -178,6 +171,7 @@ body {
     border-radius: 50%;
     background: #ffffff;
     box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    border: none;
 }
 
 .install-content {
@@ -185,39 +179,47 @@ body {
     color: #fff; opacity: 1; transition: opacity 0.4s;
 }
 
-#pwa-install-container.minimized .install-content { display: none; }
+#pwa-install-container.minimized .install-content { 
+    display: none; 
+}
 
 /* ÍCONE COM SVG VETORIAL */
 .download-icon-premium {
-    position: relative; width: 120px; height: 120px;
+    position: relative; 
+    width: 120px; height: 120px;
     margin: 0 auto 40px; border-radius: 32px;
     background: linear-gradient(145deg, #111, #0a0a0a);
     box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
     display: flex; align-items: center; justify-content: center;
+    transition: all 0.5s ease;
 }
 
+/* A SETA DENTRO DO ICONE */
 .download-icon-premium svg {
     width: 60px; height: 60px;
-    stroke: white;
-    transition: all 0.4s ease;
+    stroke: #ffffff; /* Seta Branca por padrão */
+    transition: all 0.5s ease;
     animation: floatArrow 2.6s ease-in-out infinite;
 }
+.download-icon-premium svg rect { fill: #ffffff; transition: fill 0.5s ease; }
 
-/* Ajuste da Seta no FAB (Minimizado) */
+/* QUANDO MINIMIZADO (FAB) */
 #pwa-install-container.minimized .download-icon-premium {
-    width: 100%; height: 100%; margin: 0;
-    background: #fff; border-radius: 50%;
+    width: 100%; height: 100%; 
+    margin: 0; 
+    background: #ffffff; /* Fundo do FAB Branco */
+    border-radius: 50%;
     box-shadow: none;
 }
 
 #pwa-install-container.minimized .download-icon-premium svg {
-    stroke: #000;
-    width: 32px; height: 32px;
-    animation: none; /* Remove flutuação no FAB para ficar mais clean */
+    stroke: #000000; /* SETA PRETA NO FAB */
+    width: 30px; height: 30px;
+    animation: none; /* Estático no FAB */
 }
 
 #pwa-install-container.minimized .download-icon-premium svg rect {
-    fill: #000;
+    fill: #000000; /* Tracinho da seta preto no FAB */
 }
 
 @keyframes floatArrow {
@@ -233,14 +235,11 @@ body {
 .btn-install-premium {
     background: #fff; color: #000; border: none; padding: 20px;
     border-radius: 16px; font-weight: 900; font-size: 1.1rem; width: 100%;
-    cursor: pointer; transition: transform 0.2s, background 0.3s;
+    cursor: pointer; transition: transform 0.2s;
 }
-
-.btn-install-premium:active { transform: scale(0.97); }
 
 .btn-later-premium {
     background: none; border: none; color: #333; margin-top: 25px;
     font-weight: bold; text-transform: uppercase; font-size: .75rem;
-    letter-spacing: 2px; cursor: pointer; transition: color 0.3s;
+    letter-spacing: 2px; cursor: pointer;
 }
-.btn-later-premium:hover { color: #666; }
