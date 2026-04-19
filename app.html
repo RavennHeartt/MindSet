@@ -18,7 +18,7 @@
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "OneSignalSDKWorker.js",
+          serviceWorkerPath: "sw.js", // IMPORTANTE: Deve ser igual ao index.html
           allowLocalhostAsSecureOrigin: true
         });
       });
@@ -89,7 +89,7 @@
                     O <strong>MindSet</strong> é um projeto independente. Seu apoio ajuda a manter o sistema ativo e financia novas atualizações para sua evolução.
                 </p>
                 <div class="pix-box">
-                    <label>CHAVE PIX (ALEATORIA)</label>
+                    <label>CHAVE PIX (E-MAIL)</label>
                     <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
                     <button class="btn-copy" onclick="copyPix()">
                         <span>📋</span> COPIAR CHAVE PIX
@@ -121,7 +121,7 @@
             // Força atualização do CSS
             document.getElementById('app-css').href = `css/app.css?v=${v}`;
 
-            // Lista ordenada de scripts
+            // Lista ordenada de scripts (Dependências primeiro)
             const scripts = [
                 'js/setups/patriarca.js', 'js/setups/matriarca.js', 'js/setups/cavalheiro.js',
                 'js/setups/dama.js', 'js/setups/devoto.js', 'js/setups/devota.js',
@@ -129,15 +129,15 @@
                 'js/setups/militar_ela.js', 'js/setups/investidor.js', 'js/setups/investidora.js',
                 'js/setups/atleta_ele.js', 'js/setups/atleta_ela.js', 'js/setups/zen.js',
                 'js/setups/estrategista.js', 'js/setups/minimalista.js',
-                'js/notifications.js', 
+                'js/notifications.js', // Motor de notificações deve vir antes do app.js
                 'js/app.js',
-                'js/tour.js' // O Tour deve ser o último a carregar
+                'js/tour.js'
             ];
 
             scripts.forEach(src => {
                 const s = document.createElement('script');
                 s.src = `${src}?v=${v}`;
-                s.async = false; // Mantém a ordem de dependência
+                s.async = false; // Mantém a ordem correta de execução
                 document.body.appendChild(s);
             });
         })();
