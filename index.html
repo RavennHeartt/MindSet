@@ -11,7 +11,6 @@
 
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
     <link rel="manifest" href="manifest.json">
-
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MindSet">
@@ -19,13 +18,15 @@
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "sw.js",
+          serviceWorkerPath: "sw.js", // Apontando para o seu SW principal unificado
+          promptOptions: {
+            slidedown: { enabled: false } // Não pede permissão ao abrir o app
+          }
         });
-        OneSignal.Notifications.showSlidedownPrompt();
       });
     </script>
 </head>
@@ -127,13 +128,14 @@
 
     <script>
         document.write('<script src="js/main.js?v=' + new Date().getTime() + '"><\/script>');
+        document.write('<script src="js/notifications.js?v=' + new Date().getTime() + '"><\/script>');
     </script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log("MindSet SW Ativo"))
+              .then(reg => console.log("MindSet SW Unificado Ativo"))
               .catch(err => console.log("Erro no SW:", err));
         });
       }
