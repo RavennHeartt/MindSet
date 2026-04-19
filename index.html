@@ -31,15 +31,19 @@
 </head>
 <body id="main-body">
 
-    <!-- ===== PWA INSTALL ===== -->
     <div id="pwa-install-container">
         <div id="install-card">
             <div class="install-content">
                 <h1 class="install-logo">MINDSET</h1>
                 
-                <div class="download-icon-premium">
-                    <div class="arrow"></div>
-                    <div class="tray"></div>
+                <div class="stage-premium">
+                    <div class="icon-box-premium">
+                        <svg class="svg-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 4v10"></path>
+                            <path d="M7 11l5 5 5-5"></path>
+                            <rect x="5" y="18" width="14" height="2.8" rx="1.4" fill="currentColor" stroke="none"></rect>
+                        </svg>
+                    </div>
                 </div>
 
                 <p class="install-text">
@@ -54,7 +58,6 @@
         </div>
     </div>
 
-    <!-- ===== WELCOME ===== -->
     <section id="step-welcome" class="screen active">
         <div class="form-container" style="text-align: center;">
             <h1 class="logo">MindSet</h1>
@@ -65,7 +68,6 @@
         </div>
     </section>
 
-    <!-- ===== REGISTRO ===== -->
     <section id="step-registration" class="screen gender-ele">
         <div class="form-container">
             <h1 class="logo" style="font-size: 2rem; margin-bottom: 20px;">MindSet</h1>
@@ -97,7 +99,6 @@
         </div>
     </section>
 
-    <!-- ===== CARROSSEL ===== -->
     <section id="step-carousel" class="screen">
         <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
         <div class="carousel-header">
@@ -112,12 +113,10 @@
         </div>
     </section>
 
-    <!-- ===== OVERLAYS ===== -->
     <div id="spotlight-overlay" class="spotlight-overlay"></div>
     <div id="demo-overlay" class="demo-overlay"></div>
     <div id="demo-guide" class="demo-guide"></div>
 
-    <!-- ===== MODAL ===== -->
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title">AVISO</h3>
