@@ -41,20 +41,11 @@ body {
     outline: none; transition: all 0.4s ease;
 }
 
-/* Estilo quando Masculino selecionado */
-#step-registration.gender-ele #user-name {
-    border-color: rgba(0, 123, 255, 0.4);
-    color: var(--blue);
-}
+#step-registration.gender-ele #user-name { border-color: rgba(0, 123, 255, 0.4); color: var(--blue); }
 #step-registration.gender-ele #user-name::placeholder { color: rgba(0, 123, 255, 0.4); }
 
-/* Estilo quando Feminino selecionado */
-#step-registration.gender-ela #user-name {
-    border-color: rgba(255, 51, 161, 0.4);
-    color: var(--pink);
-}
+#step-registration.gender-ela #user-name { border-color: rgba(255, 51, 161, 0.4); color: var(--pink); }
 #step-registration.gender-ela #user-name::placeholder { color: rgba(255, 51, 161, 0.4); }
-
 
 /* --- AGE SELECTOR --- */
 .age-selector-container {
@@ -157,18 +148,19 @@ body {
 .btn-modal-ok { background: #fff; color: #000; }
 .btn-modal-cancel { background: #111; color: #fff; border: 1px solid #222; }
 
-/* --- SISTEMA DE INSTALAÇÃO PWA (MELHORADO) --- */
+
+/* --- SISTEMA DE INSTALAÇÃO PWA (REESTILIZADO DARK MINIMALIST) --- */
 #pwa-install-container {
     position: fixed; inset: 0; z-index: 999999;
     display: none; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.96); 
-    transition: all 1s cubic-bezier(0.19, 1, 0.22, 1); /* Animação de encolhimento mantida aqui */
+    background: rgba(0, 0, 0, 0.98); 
+    transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 #pwa-install-container.visible { display: flex !important; }
 
 #pwa-install-container.minimized {
-    width: 70px; height: 70px;
+    width: 65px; height: 65px;
     top: auto; left: auto;
     bottom: 30px; right: 30px;
     background: transparent;
@@ -176,98 +168,79 @@ body {
 
 #install-card {
     width: 100%; height: 100%;
-    background: #0a0a0a; border: 1px solid #1a1a1a;
+    background: #050505; 
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    transition: all 1s cubic-bezier(0.19, 1, 0.22, 1);
+    transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
     cursor: pointer; overflow: hidden; position: relative;
 }
 
 #pwa-install-container.minimized #install-card {
     border-radius: 50%;
     background: #ffffff;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
 
 .install-content {
     text-align: center; padding: 40px; max-width: 320px;
-    color: #fff; opacity: 1; transition: opacity 0.5s;
+    color: #fff; opacity: 1; transition: opacity 0.4s;
 }
 
-#pwa-install-container.minimized .install-content {
-    display: none; opacity: 0;
-}
+#pwa-install-container.minimized .install-content { display: none; }
 
-/* ÍCONE PREMIUM COM ANIMAÇÕES */
+/* ÍCONE COM SVG VETORIAL */
 .download-icon-premium {
-    position: relative; width: 92px; height: 92px;
-    margin: 10px auto 30px; border-radius: 28px;
-    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 20px 45px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.15);
+    position: relative; width: 120px; height: 120px;
+    margin: 0 auto 40px; border-radius: 32px;
+    background: linear-gradient(145deg, #111, #0a0a0a);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
     display: flex; align-items: center; justify-content: center;
-    animation: floatIcon 3.2s ease-in-out infinite;
 }
 
-.download-icon-premium .arrow {
-    position: absolute; width: 8px; height: 35px; background: #fff;
-    border-radius: 4px; top: 22px; animation: arrowDrop 2.4s ease-in-out infinite;
+.download-icon-premium svg {
+    width: 60px; height: 60px;
+    stroke: white;
+    transition: all 0.4s ease;
+    animation: floatArrow 2.6s ease-in-out infinite;
 }
 
-.download-icon-premium .arrow::after {
-    content: ''; position: absolute; bottom: -10px; left: -10px;
-    width: 24px; height: 24px;
-    border-left: 8px solid #fff; border-bottom: 8px solid #fff;
-    transform: rotate(-45deg); border-radius: 5px;
-}
-
-.download-icon-premium .tray {
-    position: absolute; bottom: 20px; width: 46px; height: 10px;
-    border-radius: 6px; background: #fff;
-}
-
-@keyframes arrowDrop {
-    0% { transform: translateY(-8px); opacity: .5; }
-    50% { transform: translateY(8px); opacity: 1; }
-    100% { transform: translateY(-8px); opacity: .5; }
-}
-
-@keyframes floatIcon {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-    100% { transform: translateY(0); }
-}
-
-/* AJUSTE DO ÍCONE NO FAB */
+/* Ajuste da Seta no FAB (Minimizado) */
 #pwa-install-container.minimized .download-icon-premium {
-    width: 70px; height: 70px; border-radius: 50%;
-    background: #fff; animation: none; box-shadow: none; backdrop-filter: none;
+    width: 100%; height: 100%; margin: 0;
+    background: #fff; border-radius: 50%;
+    box-shadow: none;
 }
 
-#pwa-install-container.minimized .arrow,
-#pwa-install-container.minimized .arrow::after,
-#pwa-install-container.minimized .tray {
-    background: #000; border-color: #000;
+#pwa-install-container.minimized .download-icon-premium svg {
+    stroke: #000;
+    width: 32px; height: 32px;
+    animation: none; /* Remove flutuação no FAB para ficar mais clean */
 }
 
-#pwa-install-container.minimized .download-icon-premium .arrow {
-    transform: scale(0.6) translateY(5px);
+#pwa-install-container.minimized .download-icon-premium svg rect {
+    fill: #000;
 }
 
-/* TEXTOS E BOTÕES DE INSTALAÇÃO */
-.install-logo { font-weight: 900; font-size: 3.2rem; letter-spacing: -3px; margin-bottom: 10px; }
-.install-text { color: #666; font-size: 1.05rem; line-height: 1.5; margin-bottom: 40px; }
+@keyframes floatArrow {
+    0% { transform: translateY(-6px); opacity: 0.6; }
+    50% { transform: translateY(6px); opacity: 1; }
+    100% { transform: translateY(-6px); opacity: 0.6; }
+}
+
+/* TEXTOS E BOTÕES */
+.install-logo { font-weight: 900; font-size: 3rem; letter-spacing: -2px; margin-bottom: 10px; color: #fff; }
+.install-text { color: #555; font-size: 0.95rem; line-height: 1.6; margin-bottom: 45px; padding: 0 20px; }
 
 .btn-install-premium {
     background: #fff; color: #000; border: none; padding: 20px;
-    border-radius: 14px; font-weight: 900; font-size: 1.1rem; width: 100%;
-    cursor: pointer; transition: transform 0.2s;
+    border-radius: 16px; font-weight: 900; font-size: 1.1rem; width: 100%;
+    cursor: pointer; transition: transform 0.2s, background 0.3s;
 }
 
-.btn-install-premium:active { transform: scale(0.96); }
+.btn-install-premium:active { transform: scale(0.97); }
 
 .btn-later-premium {
-    background: none; border: none; color: #444; margin-top: 25px;
-    font-weight: bold; text-transform: uppercase; font-size: .8rem;
-    letter-spacing: 1px; cursor: pointer;
+    background: none; border: none; color: #333; margin-top: 25px;
+    font-weight: bold; text-transform: uppercase; font-size: .75rem;
+    letter-spacing: 2px; cursor: pointer; transition: color 0.3s;
 }
+.btn-later-premium:hover { color: #666; }
