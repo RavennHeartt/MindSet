@@ -14,7 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
-      // Sua configuração do Firebase
       const firebaseConfig = {
         apiKey: "AIzaSyDRs0XmGYfoeaSHBMBIWBRGJqIVQcaJKUc",
         authDomain: "mindset-7348d.firebaseapp.com",
@@ -25,9 +24,8 @@
         measurementId: "G-W9VSMT8S5S"
       };
 
-      // Inicializa o Firebase
       firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore(); // Variável global para o banco
+      const db = firebase.firestore();
     </script>
 
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -136,15 +134,15 @@
                 'js/setups/militar_ela.js', 'js/setups/investidor.js', 'js/setups/investidora.js',
                 'js/setups/atleta_ele.js', 'js/setups/atleta_ela.js', 'js/setups/zen.js',
                 'js/setups/estrategista.js', 'js/setups/minimalista.js',
-                'js/notifications.js', 
-                'js/app.js',
-                'js/tour.js'
+                'js/notifications.js', // Gerencia frases e OneSignal Tags
+                'js/app.js',           // Motor principal
+                'js/tour.js'           // Onboarding de HUD
             ];
 
             scripts.forEach(src => {
                 const s = document.createElement('script');
                 s.src = `${src}?v=${v}`;
-                s.async = false;
+                s.async = false; // Garante a ordem de execução
                 document.body.appendChild(s);
             });
         })();
