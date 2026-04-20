@@ -41,12 +41,10 @@ let deferredPrompt;
 const body = document.body;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Se o usuário já configurou o app, pula para a tela principal
     if (localStorage.getItem('mindset_chosen')) {
         window.location.href = 'app.html';
         return;
     }
-    
     initAgeCarousel();
     setupGenderSync();
     initPwaInstallLogic();
@@ -64,8 +62,6 @@ function initPwaInstallLogic() {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        
-        // Se não estiver em modo standalone, mostra o Hero Prompt
         if (!window.matchMedia('(display-mode: standalone)').matches) {
             container.classList.add('visible');
         }
@@ -103,19 +99,15 @@ function initPwaInstallLogic() {
 function startOnboarding() {
     const welcome = document.getElementById('step-welcome');
     const registration = document.getElementById('step-registration');
-    
     if (welcome) welcome.classList.remove('active');
     if (registration) registration.classList.add('active');
-    
     runSpotlight();
 }
 
 function runSpotlight() {
     const overlay = document.getElementById('spotlight-overlay');
     const targets = ['group-name', 'group-gender', 'group-age'];
-    
     if (!overlay) return;
-    
     overlay.style.display = 'block';
     overlay.style.opacity = '1';
     let step = 0;
@@ -129,7 +121,6 @@ function runSpotlight() {
             }, 600);
             return;
         }
-        
         const el = document.getElementById(targets[step]);
         if (el) {
             const rect = el.getBoundingClientRect();
@@ -137,7 +128,6 @@ function runSpotlight() {
             const t = rect.top - p, l = rect.left - p, r = rect.right + p, b = rect.bottom + p;
             overlay.style.clipPath = `polygon(0% 0%, 0% 100%, 100% 100%, 100% 0%, 0% 0%, ${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px, ${l}px ${t}px)`;
         }
-        
         step++;
         setTimeout(nextSpot, 1200); 
     }
@@ -148,7 +138,6 @@ function runSpotlight() {
 function initAgeCarousel() {
     const track = document.getElementById('age-carousel-track');
     if (!track) return;
-    
     track.innerHTML = "";
     for (let i = 15; i <= 65; i++) {
         const span = document.createElement('div');
@@ -157,7 +146,6 @@ function initAgeCarousel() {
         span.dataset.age = i;
         track.appendChild(span);
     }
-
     setTimeout(() => {
         const firstNum = track.querySelector('[data-age="15"]');
         if (firstNum) firstNum.classList.add('selected');
@@ -167,7 +155,6 @@ function initAgeCarousel() {
         const containerRect = track.getBoundingClientRect();
         const center = containerRect.left + containerRect.width / 2;
         const numbers = track.querySelectorAll('.age-number');
-        
         let closest = null;
         let minDistance = Infinity;
 
@@ -175,14 +162,12 @@ function initAgeCarousel() {
             const numRect = num.getBoundingClientRect();
             const numCenter = numRect.left + numRect.width / 2;
             const distance = Math.abs(center - numCenter);
-            
             if (distance < minDistance) { 
                 minDistance = distance; 
                 closest = num; 
             }
             num.classList.remove('selected');
         });
-
         if (closest) { 
             closest.classList.add('selected'); 
             userSelectedAge = closest.dataset.age; 
@@ -194,9 +179,7 @@ function initAgeCarousel() {
 function setupGenderSync() {
     const toggle = document.getElementById('gender-toggle');
     const regSection = document.getElementById('step-registration');
-    
     if (!toggle || !regSection) return;
-
     toggle.addEventListener('change', () => {
         selectedGender = toggle.checked ? "ela" : "ele";
         regSection.classList.remove('gender-ela', 'gender-ele');
@@ -208,18 +191,14 @@ function setupGenderSync() {
 function nextStep() {
     const nameInput = document.getElementById('user-name');
     const nome = nameInput ? nameInput.value.trim() : "";
-    
     if (!nome) { 
         showModal('COMO PODEMOS TE CHAMAR?', 'Por favor, digite seu nome ou apelido para continuar.'); 
         return; 
     }
-    
     document.getElementById('welcome-name').innerText = nome.toUpperCase();
     renderCarousel();
-    
     document.getElementById('step-registration').classList.remove('active');
     document.getElementById('step-carousel').classList.add('active');
-    
     setTimeout(runDemoGuide, 600);
 }
 
@@ -267,7 +246,6 @@ function updateCarousel(list) {
     isMoving = true;
     list.style.transition = "transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)";
     list.style.transform = `translateX(-${currentIndex * 100}vw)`;
-    
     const corAtual = loopItems[currentIndex].cor;
     body.style.background = `radial-gradient(circle at center, ${corAtual} 0%, #000000 100%)`;
     currentSetupId = loopItems[currentIndex].id;
@@ -296,12 +274,9 @@ function runDemoGuide() {
     const guide = document.getElementById('demo-guide');
     const list = document.getElementById('carousel-list');
     const overlay = document.getElementById('demo-overlay');
-    
     if (!guide || !list || !overlay) return;
-
     overlay.style.display = 'block';
     guide.style.display = 'block';
-    
     setTimeout(() => {
         overlay.style.opacity = "0.6"; 
         guide.style.animation = "shrinkToDot 1s forwards";
@@ -361,33 +336,52 @@ function showModal(title, message, isConfirm = false, onConfirm = null) {
     modal.style.display = 'flex';
 }
 
+// --- NOVO: FUNÇÃO DE SINCRONIZAÇÃO INICIAL FIREBASE ---
+async function syncInitialSetupToFirebase(data) {
+    if (typeof db === 'undefined') return;
+    const userId = data.nome.toLowerCase().trim().replace(/\s/g, '_');
+    try {
+        await db.collection("usuarios").doc(userId).set({
+            ...data,
+            ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log("Cloud: Perfil criado no Firestore.");
+    } catch (e) {
+        console.error("Cloud: Erro ao criar perfil inicial:", e);
+    }
+}
+
 function confirmSelection() {
     showModal(
         'CONFIGURAR MENTE?', 
         'Esta escolha é permanente e moldará sua experiência.', 
         true, 
-        () => {
+        async () => {
             const data = { 
                 nome: document.getElementById('user-name').value, 
                 setup: currentSetupId, 
                 genero: selectedGender, 
                 idade: userSelectedAge,
-                level: 1, // Dados iniciais para tags
+                level: 1,
                 streak: 0
             };
             
+            // 1. Salva no LocalStorage
             localStorage.setItem('mindset_chosen', currentSetupId);
             localStorage.setItem('mindset_data', JSON.stringify(data));
             
-            // Define global para o OneSignal ler
+            // 2. Disponibiliza global para OneSignal
             window.userData = data; 
             
-            // Inicializa notificações (External ID + Tags + Permission)
+            // 3. Sincroniza imediatamente com Firebase Firestore
+            await syncInitialSetupToFirebase(data);
+            
+            // 4. Inicializa notificações
             if (typeof initNotifications === "function") {
                 initNotifications();
             }
 
-            // Delay estratégico para o OneSignal processar antes do redirect
+            // 5. Redireciona
             setTimeout(() => {
                 window.location.href = 'app.html';
             }, 1800);

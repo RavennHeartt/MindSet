@@ -1,6 +1,6 @@
 /**
- * MINDSET - CORE ENGINE v1.9
- * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização de Tour
+ * MINDSET - CORE ENGINE v2.0 (FIREBASE SYNC)
+ * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização Cloud
  */
 
 // 1. GESTÃO DE DADOS
@@ -24,6 +24,24 @@ if (userData) {
 
 let currentSetup = null;
 let currentViewDate = new Date();
+
+// --- FUNÇÃO DE SINCRONIZAÇÃO FIREBASE ---
+async function syncToFirebase() {
+    if (typeof db === 'undefined' || !userData || !userData.nome) return;
+
+    // Criamos um ID único baseado no nome
+    const userId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
+
+    try {
+        await db.collection("usuarios").doc(userId).set({
+            ...userData,
+            ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log("MindSet Cloud: Sincronizado.");
+    } catch (error) {
+        console.error("Erro Cloud Sync:", error);
+    }
+}
 
 // --- 2. MOTOR DE PROGRESSÃO ---
 
@@ -65,6 +83,7 @@ window.completeTask = (id, xp) => {
     save();
     updateUI();
     renderTasks();
+    syncToFirebase(); // Sincroniza ao marcar/desmarcar
 };
 
 function handleLeveling() {
@@ -111,6 +130,7 @@ function forceDateSync() {
         save();
         renderTasks();
         updateUI();
+        syncToFirebase(); // Sincroniza na virada do dia
     }
 }
 
@@ -277,7 +297,9 @@ function updateUI() {
     document.getElementById('xp-fill').style.width = `${Math.min(100, (userData.xp / req) * 100)}%`;
 }
 
-function save() { localStorage.setItem('mindset_data', JSON.stringify(userData)); }
+function save() { 
+    localStorage.setItem('mindset_data', JSON.stringify(userData)); 
+}
 
 window.changeMonth = (dir) => { currentViewDate.setMonth(currentViewDate.getMonth() + dir); window.renderCalendar(); };
 
@@ -307,6 +329,9 @@ window.onload = () => {
         forceDateSync();
         updateUI();
         renderTasks();
+        
+        // Sincronização inicial com Firebase no carregamento
+        syncToFirebase();
 
         // Inicializa aba ativa no menu
         const initialLi = Array.from(document.querySelectorAll('.menu-links li'))
