@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MindSet | Inicialização</title>
     
-    <script>
-        // Força a atualização do CSS para evitar cache de cores dos setups
-        document.write('<link rel="stylesheet" href="css/main.css?v=' + new Date().getTime() + '">');
-    </script>
+    <link rel="stylesheet" href="css/main.css">
 
     <link rel="apple-touch-icon" href="assets/icone-ios.png">
     <link rel="manifest" href="manifest.json">
@@ -28,7 +25,6 @@
         appId: "1:239649616932:web:2e0a5391a50a8f7d0e94b1",
         measurementId: "G-W9VSMT8S5S"
       };
-
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
     </script>
@@ -42,7 +38,7 @@
           serviceWorkerParam: { scope: "/" },
           serviceWorkerPath: "sw.js", 
           allowLocalhostAsSecureOrigin: true,
-          // requiresUserPrivacyConsent removido para permitir addTags imediato
+          // requiresUserPrivacyConsent removido para não bloquear addTags
           promptOptions: { slidedown: { enabled: false } }
         });
       });
@@ -50,8 +46,8 @@
 </head>
 <body id="main-body">
 
-    <div id="demo-overlay" class="demo-overlay"></div>
-    <div id="demo-guide" class="demo-guide"></div>
+    <div id="demo-overlay" class="demo-overlay" style="display:none;"></div>
+    <div id="demo-guide" class="demo-guide" style="display:none;"></div>
 
     <div id="pwa-install-container">
         <div id="install-card">
@@ -131,17 +127,15 @@
         </div>
     </div>
 
-    <script>
-        document.write('<script src="js/main.js?v=' + new Date().getTime() + '"><\/script>');
-        document.write('<script src="js/notifications.js?v=' + new Date().getTime() + '"><\/script>');
-    </script>
+    <script src="js/main.js"></script>
+    <script src="js/notifications.js"></script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log("MindSet SW Ativo"))
-              .catch(err => console.error("Erro no SW:", err));
+              .then(reg => console.log("SW Ativo"))
+              .catch(err => console.error("Erro SW:", err));
         });
       }
     </script>
