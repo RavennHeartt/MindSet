@@ -1,6 +1,6 @@
 /**
  * MindSet - Lógica de Configuração Inicial e Instalação PWA
- * v2.8 - RESTAURAÇÃO TOTAL DO DEMO GUIDE
+ * v2.9 - VERSÃO INTEGRADA (Demo Guide + Spotlight + Cloud)
  */
 
 const setups = {
@@ -81,7 +81,7 @@ function initPwaInstallLogic() {
     });
 }
 
-// --- 2. SPOTLIGHT (Luzes no Cadastro) ---
+// --- 2. SPOTLIGHT (Tutorial de Campos) ---
 function startOnboarding() {
     document.getElementById('step-welcome').classList.remove('active');
     document.getElementById('step-registration').classList.add('active');
@@ -118,7 +118,7 @@ function runSpotlight() {
     nextSpot();
 }
 
-// --- 3. CARROSSEL DE IDADE ---
+// --- 3. SELETORES DIRETOS ---
 function initAgeCarousel() {
     const track = document.getElementById('age-carousel-track');
     if (!track) return;
@@ -164,11 +164,10 @@ function setupGenderSync() {
     });
 }
 
-// --- 4. NAVEGAÇÃO E CARROSSEL SETUPS ---
+// --- 4. NAVEGAÇÃO E TRANSIÇÃO ---
 function nextStep() {
-    const nomeInput = document.getElementById('user-name');
-    const nome = nomeInput ? nomeInput.value.trim() : "";
-    if (!nome) { showModal('AVISO', 'Como devemos te chamar?'); return; }
+    const nome = document.getElementById('user-name').value.trim();
+    if (!nome) { showModal('AVISO', 'Por favor, identifique-se no sistema.'); return; }
     
     document.getElementById('welcome-name').innerText = nome.toUpperCase();
     renderCarousel();
@@ -176,7 +175,7 @@ function nextStep() {
     document.getElementById('step-registration').classList.remove('active');
     document.getElementById('step-carousel').classList.add('active');
     
-    // CHAMADA DO DEMO GUIDE (BOLINHA)
+    // Dispara o Guia Visual (Bolinha)
     setTimeout(runDemoGuide, 800);
 }
 
@@ -186,6 +185,7 @@ function prevStep() {
     document.getElementById('step-registration').classList.add('active');
 }
 
+// --- 5. CARROSSEL DINÂMICO ---
 function renderCarousel() {
     const list = document.getElementById('carousel-list');
     const items = setups[selectedGender];
@@ -234,14 +234,14 @@ function updatePositionInstant(list) {
     currentSetupId = loopItems[currentIndex].id;
 }
 
-// --- 5. MOTOR DO DEMO GUIDE (BOLINHA) ---
+// --- 6. MOTOR DO DEMO GUIDE (A BOLINHA) ---
 function runDemoGuide() {
     const guide = document.getElementById('demo-guide');
     const list = document.getElementById('carousel-list');
     const overlay = document.getElementById('demo-overlay');
+    
     if (!guide || !list || !overlay) return;
 
-    // Reinicia estados
     overlay.style.display = 'block';
     guide.style.display = 'block';
     guide.style.left = "50%";
@@ -256,17 +256,17 @@ function runDemoGuide() {
         guide.style.transition = "all 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
         list.style.transition = "transform 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
         
-        // Swipe Right
+        // Simulação Swipe Direita
         guide.style.left = "85%";
         list.style.transform = `translateX(-${(currentIndex * 100) - 25}vw)`;
 
         setTimeout(() => {
-            // Swipe Left
+            // Simulação Swipe Esquerda
             guide.style.left = "15%";
             list.style.transform = `translateX(-${(currentIndex * 100) + 25}vw)`;
             
             setTimeout(() => {
-                // Back to Center
+                // Retorno ao Centro
                 guide.style.left = "50%";
                 list.style.transform = `translateX(-${currentIndex * 100}vw)`;
                 
@@ -284,7 +284,7 @@ function runDemoGuide() {
     }, 1300);
 }
 
-// --- 6. MODAL & FINALIZAÇÃO ---
+// --- 7. FINALIZAÇÃO E CLOUD ---
 function showModal(title, message, isConfirm = false, onConfirm = null) {
     const modal = document.getElementById('modal-overlay');
     document.getElementById('modal-title').innerText = title;
@@ -316,11 +316,11 @@ async function syncInitialSetupToFirebase(data) {
             ...data,
             ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
-    } catch (e) { console.error("Cloud Error:", e); }
+    } catch (e) { console.error("Firebase Error:", e); }
 }
 
 function confirmSelection() {
-    showModal('CONFIRMAR SETUP?', 'Sua jornada mental começa agora.', true, async () => {
+    showModal('VINCULAR MENTE?', 'Este setup guiará sua nova rotina.', true, async () => {
         const data = { 
             nome: document.getElementById('user-name').value, 
             setup: currentSetupId, 

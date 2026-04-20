@@ -1,6 +1,6 @@
 /**
  * MINDSET - NOTIFICATIONS ENGINE v2.0
- * Gerenciamento de Vozes, Agendamento e Sincronização de Tags
+ * Gerenciamento de Vozes, Agendamento e Sincronização de Tags (SDK v16)
  */
 
 const mindsetVoices = {
@@ -24,8 +24,7 @@ const mindsetVoices = {
 };
 
 /**
- * Envia as etiquetas de inteligência para o OneSignal.
- * Chamado no Onboarding, no HUD e a cada save de tarefa.
+ * Sincroniza Identidade e Tags com o OneSignal (Padrão SDK v16)
  */
 async function sendOneSignalTags(user) {
     if (!user || !user.nome || !user.setup) return;
@@ -36,10 +35,10 @@ async function sendOneSignalTags(user) {
             const cleanId = user.nome.toLowerCase().trim().replace(/\s/g, '_');
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
 
-            // 1. Vincula a Identidade (External ID)
+            // 1. Vincula o External ID (Login)
             await OneSignal.login(cleanId);
 
-            // 2. Carimba as Tags (Garantindo que sejam Strings)
+            // 2. Envia as Tags de Usuário (Conforme Documentação OneSignal)
             await OneSignal.User.addTags({
                 "nome_usuario": String(user.nome),
                 "setup_ativo": String(user.setup),
@@ -52,13 +51,13 @@ async function sendOneSignalTags(user) {
 
             console.log("OneSignal: Tags sincronizadas para " + cleanId);
         } catch (err) {
-            console.error("OneSignal Tag Error:", err);
+            console.error("OneSignal Sync Error:", err);
         }
     });
 }
 
 /**
- * Inicialização automática baseada no estado atual do usuário
+ * Inicializa notificações se o usuário já existir
  */
 function initNotifications() {
     const localData = JSON.parse(localStorage.getItem('mindset_data'));
@@ -68,8 +67,7 @@ function initNotifications() {
 }
 
 /**
- * Sistema de agendamento local (Fallback)
- * Verifica a cada minuto se deve disparar notificação local se o app estiver aberto
+ * Agendamento de Fallback (Notificações locais caso o app esteja aberto)
  */
 function checkNotificationSchedule() {
     const localData = JSON.parse(localStorage.getItem('mindset_data'));
@@ -79,7 +77,7 @@ function checkNotificationSchedule() {
     const h = agora.getHours();
     const m = agora.getMinutes();
 
-    if (m !== 0) return; // Só roda no topo da hora
+    if (m !== 0) return; 
 
     const voice = mindsetVoices[localData.setup] || mindsetVoices['patriarca'];
     let titulo = "SISTEMA MINDSET";
@@ -97,5 +95,5 @@ function checkNotificationSchedule() {
     }
 }
 
-// Inicia o monitoramento local
+// Inicia o intervalo de verificação local
 setInterval(checkNotificationSchedule, 60000);
