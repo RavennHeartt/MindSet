@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MindSet | HUD</title>
+    <title>MindSet | Inicialização</title>
     
-    <link rel="stylesheet" id="app-css" href="css/app.css">
+    <script>
+        // Força a atualização do CSS para evitar cache de cores dos setups
+        document.write('<link rel="stylesheet" href="css/main.css?v=' + new Date().getTime() + '">');
+    </script>
 
+    <link rel="apple-touch-icon" href="assets/icone-ios.png">
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MindSet">
@@ -35,85 +40,88 @@
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "sw.js",
-          allowLocalhostAsSecureOrigin: true
+          serviceWorkerPath: "sw.js", 
+          allowLocalhostAsSecureOrigin: true,
+          // Definido como false para as tags funcionarem imediatamente após o cadastro
+          requiresUserPrivacyConsent: false,
+          promptOptions: { slidedown: { enabled: false } }
         });
       });
     </script>
 </head>
-<body id="app-body">
+<body id="main-body">
 
-    <nav id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <h3>SISTEMA</h3>
-            <button class="close-menu-btn" onclick="toggleMenu()">✕</button>
-        </div>
-        <ul class="menu-links">
-            <li onclick="showSection('tasks')">📑 MISSÕES DIÁRIAS</li>
-            <li onclick="showSection('history')">📅 CALENDÁRIO</li>
-            <li onclick="ativarNotificacoesManual()">🔔 ATIVAR ALERTAS</li>
-            <li onclick="showSection('contribute')">☕ APOIAR</li>
-            <li onclick="confirmReset()" class="reset-link">⚠️ RESETAR TUDO</li>
-        </ul>
-        <div class="menu-footer">MINDSET v1.5</div>
-    </nav>
+    <div id="demo-overlay" class="demo-overlay"></div>
+    <div id="demo-guide" class="demo-guide"></div>
 
-    <header class="hud-header">
-        <button class="menu-btn" id="main-menu-trigger" onclick="toggleMenu()">☰</button>
-        <div class="user-meta">
-            <span id="user-rank" class="rank-badge">---</span>
-            <h1 id="user-name-display">USUÁRIO</h1>
-        </div>
-        <div class="xp-container" id="xp-hud">
-            <div class="xp-bar-wrapper">
-                <div id="xp-fill" class="xp-fill"></div>
-            </div>
-            <span id="level-display">LVL 1</span>
-        </div>
-    </header>
-
-    <main class="hud-main">
-        <div id="section-tasks" class="content-section active">
-            <section class="daily-quote" id="quote-area">
-                <p id="quote-text">"Preparando sistema..."</p>
-            </section>
-            <h2 class="section-title">MISSÕES DE HOJE</h2>
-            <div id="task-list" class="task-list"></div>
-        </div>
-
-        <div id="section-history" class="content-section">
-            <h2 class="section-title">HISTÓRICO</h2>
-            <div class="calendar-card" id="calendar-area">
-                <div class="calendar-header">
-                    <button onclick="changeMonth(-1)">❮</button>
-                    <h4 id="calendar-month-year">---</h4>
-                    <button onclick="changeMonth(1)">❯</button>
+    <div id="pwa-install-container">
+        <div id="install-card">
+            <div class="install-content">
+                <h1 class="install-logo">MINDSET</h1>
+                <div class="stage-premium">
+                    <div class="icon-box-premium">
+                        <svg class="svg-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 4v10"></path>
+                            <path d="M7 11l5 5 5-5"></path>
+                            <rect x="5" y="18" width="14" height="2.8" rx="1.4" fill="currentColor" stroke="none"></rect>
+                        </svg>
+                    </div>
                 </div>
-                <div class="calendar-weekdays">
-                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-                </div>
-                <div id="calendar-days" class="calendar-grid"></div>
-            </div>
-            <div id="day-detail-container" class="day-detail-container"></div>
-        </div>
-
-        <div id="section-contribute" class="content-section">
-            <h2 class="section-title">APOIAR</h2>
-            <div class="contribute-card">
-                <span class="icon-coffee">☕</span>
-                <p class="support-text">O MindSet é um projeto independente.</p>
-                <div class="pix-box">
-                    <label>CHAVE PIX (E-MAIL)</label>
-                    <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
-                    <button class="btn-copy" onclick="copyPix()">📋 COPIAR CHAVE PIX</button>
+                <p class="install-text">Construa sua nova mentalidade com a experiência completa de aplicativo.</p>
+                <div class="install-actions">
+                    <button id="btn-do-install" class="btn-install-premium">INSTALAR AGORA</button>
+                    <button id="btn-later" class="btn-later-premium">AGORA NÃO</button>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <footer class="hud-footer">
-        <div class="streak-pill" id="streak-hud">🔥 <span id="streak-count">0</span> DIAS</div>
-    </footer>
+    <section id="step-welcome" class="screen active">
+        <div class="form-container" style="text-align: center;">
+            <h1 class="logo">MindSet</h1>
+            <p class="welcome-text">Te ajudaremos a construir uma nova mentalidade e reprogramar seus hábitos de forma definitiva.</p>
+            <button class="btn-main" onclick="startOnboarding()">COMEÇAR</button>
+        </div>
+    </section>
+
+    <section id="step-registration" class="screen gender-ele">
+        <div class="form-container">
+            <h1 class="logo" style="font-size: 2rem; margin-bottom: 20px;">MindSet</h1>
+            <div class="input-group" id="group-name">
+                <label>COMO DEVEMOS TE CHAMAR?</label>
+                <input type="text" id="user-name" placeholder="Digite seu nome ou apelido..." autocomplete="off">
+            </div>
+            <div class="input-group" id="group-gender">
+                <label>GÊNERO</label>
+                <div class="gender-toggle-wrapper">
+                    <input type="checkbox" id="gender-toggle" hidden>
+                    <div class="toggle-pill"></div>
+                    <label for="gender-toggle" class="gender-btn btn-ele">ELE</label>
+                    <label for="gender-toggle" class="gender-btn btn-ela">ELA</label>
+                </div>
+            </div>
+            <div class="input-group" id="group-age">
+                <label>IDADE</label>
+                <div class="age-selector-container">
+                    <div class="age-selection-marker"></div>
+                    <div class="age-carousel-track" id="age-carousel-track"></div>
+                </div>
+            </div>
+            <button class="btn-main" onclick="nextStep()">AVANÇAR</button>
+        </div>
+    </section>
+
+    <section id="step-carousel" class="screen">
+        <button class="btn-back" onclick="prevStep()">← VOLTAR</button>
+        <div class="carousel-header"><span id="welcome-name"></span>, ESCOLHA SEU NOVO SETUP:</div>
+        <div class="carousel-wrapper">
+            <div class="carousel-container" id="carousel-list"></div>
+        </div>
+        <div class="carousel-footer">
+            <p style="font-size: 0.7rem; opacity: 0.5; margin-bottom: 15px;">DESLIZE PARA OS LADOS</p>
+            <button class="btn-confirm" onclick="confirmSelection()">INICIAR MINDSET</button>
+        </div>
+    </section>
 
     <div id="spotlight-overlay" class="spotlight-overlay"></div>
     <div id="modal-overlay" class="modal-overlay">
@@ -125,27 +133,18 @@
     </div>
 
     <script>
-        (function() {
-            const v = Date.now();
-            const scripts = [
-                'js/setups/patriarca.js', 'js/setups/matriarca.js', 'js/setups/cavalheiro.js',
-                'js/setups/dama.js', 'js/setups/devoto.js', 'js/setups/devota.js',
-                'js/setups/ceo_ele.js', 'js/setups/ceo_ela.js', 'js/setups/militar_ele.js',
-                'js/setups/militar_ela.js', 'js/setups/investidor.js', 'js/setups/investidora.js',
-                'js/setups/atleta_ele.js', 'js/setups/atleta_ela.js', 'js/setups/zen.js',
-                'js/setups/estrategista.js', 'js/setups/minimalista.js',
-                'js/notifications.js', // Gerencia frases e OneSignal Tags
-                'js/app.js',           // Motor principal
-                'js/tour.js'           // Onboarding de HUD
-            ];
+        document.write('<script src="js/main.js?v=' + new Date().getTime() + '"><\/script>');
+        document.write('<script src="js/notifications.js?v=' + new Date().getTime() + '"><\/script>');
+    </script>
 
-            scripts.forEach(src => {
-                const s = document.createElement('script');
-                s.src = `${src}?v=${v}`;
-                s.async = false; // Garante a ordem de execução
-                document.body.appendChild(s);
-            });
-        })();
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+              .then(reg => console.log("MindSet SW Ativo"))
+              .catch(err => console.error("Erro no SW:", err));
+        });
+      }
     </script>
 </body>
 </html>
