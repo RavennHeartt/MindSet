@@ -1,5 +1,5 @@
 /**
- * MINDSET - CORE ENGINE v2.0 (FIREBASE SYNC)
+ * MINDSET - CORE ENGINE v2.0 FINAL (FIREBASE & ONESIGNAL SYNC)
  * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização Cloud
  */
 
@@ -251,7 +251,7 @@ window.showDayDetail = (dateStr) => {
     cont.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
-// --- 5. UTILITÁRIOS ---
+// --- 5. UTILITÁRIOS & SINCRONIZAÇÃO MANUAL ---
 
 window.copyPix = () => {
     const pixText = document.getElementById('pix-key').innerText;
@@ -270,8 +270,37 @@ function fallbackCopy(text) {
 
 window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
 
+// FUNÇÃO DE ATIVAÇÃO MANUAL (ONESIGNAL VÍNCULO)
+window.ativarNotificacoesManual = async () => {
+    window.showModal("SISTEMA", "Sincronizando identidade com a nuvem...");
+    
+    await syncToFirebase();
+
+    if (window.OneSignalDeferred) {
+        OneSignalDeferred.push(async function(OneSignal) {
+            const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
+            const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
+
+            await OneSignal.login(cleanId);
+            
+            await OneSignal.User.addTags({
+                "nome_usuario": userData.nome,
+                "setup_ativo": userData.setup,
+                "msg_morning": voice.morning,
+                "msg_afternoon": voice.afternoon
+            });
+
+            await OneSignal.Notifications.requestPermission();
+            window.showModal("SUCESSO", "Dispositivo vinculado e tags sincronizadas!");
+        });
+    } else {
+        window.showModal("ERRO", "OneSignal não carregou. Verifique sua conexão.");
+    }
+};
+
 window.showModal = (title, msg) => {
     const m = document.getElementById('modal-overlay');
+    if (!m) return;
     m.style.display = 'flex';
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-message').innerText = msg;
@@ -318,7 +347,6 @@ window.onload = () => {
     setTimeout(() => {
         currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
         
-        // Cores Dinâmicas
         const corHex = currentSetup.cor;
         document.documentElement.style.setProperty('--accent', corHex);
         document.documentElement.style.setProperty('--accent-rgb', hexToRgb(corHex));
@@ -330,15 +358,12 @@ window.onload = () => {
         updateUI();
         renderTasks();
         
-        // Sincronização inicial com Firebase no carregamento
         syncToFirebase();
 
-        // Inicializa aba ativa no menu
         const initialLi = Array.from(document.querySelectorAll('.menu-links li'))
                                .find(li => li.getAttribute('onclick')?.includes('tasks'));
         if (initialLi) initialLi.classList.add('menu-active');
 
-        // SINAL PARA O TOUR: HUD está pronto
         window.dispatchEvent(new Event('hudReady'));
     }, 400);
 };
