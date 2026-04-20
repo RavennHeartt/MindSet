@@ -1,5 +1,6 @@
 /**
  * MindSet - Lógica de Configuração Inicial e Instalação PWA
+ * v2.8 - RESTAURAÇÃO TOTAL DO DEMO GUIDE
  */
 
 const setups = {
@@ -50,14 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initPwaInstallLogic();
 });
 
-// --- 1. LÓGICA DE INSTALAÇÃO PWA ---
+// --- 1. INSTALAÇÃO PWA ---
 function initPwaInstallLogic() {
     const container = document.getElementById('pwa-install-container');
     const btnInstall = document.getElementById('btn-do-install');
     const btnLater = document.getElementById('btn-later');
-    const card = document.getElementById('install-card');
-
-    if (!container || !card) return;
+    if (!container) return;
 
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -71,9 +70,7 @@ function initPwaInstallLogic() {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                container.classList.remove('visible');
-            }
+            if (outcome === 'accepted') container.classList.remove('visible');
             deferredPrompt = null;
         }
     });
@@ -82,25 +79,12 @@ function initPwaInstallLogic() {
         e.stopPropagation();
         container.classList.add('minimized');
     });
-
-    card.addEventListener('click', () => {
-        if (container.classList.contains('minimized') && deferredPrompt) {
-            btnInstall.click();
-        }
-    });
-
-    window.addEventListener('appinstalled', () => {
-        container.style.display = 'none';
-        deferredPrompt = null;
-    });
 }
 
-// --- 2. SPOTLIGHT (ONBOARDING) ---
+// --- 2. SPOTLIGHT (Luzes no Cadastro) ---
 function startOnboarding() {
-    const welcome = document.getElementById('step-welcome');
-    const registration = document.getElementById('step-registration');
-    if (welcome) welcome.classList.remove('active');
-    if (registration) registration.classList.add('active');
+    document.getElementById('step-welcome').classList.remove('active');
+    document.getElementById('step-registration').classList.add('active');
     runSpotlight();
 }
 
@@ -115,8 +99,8 @@ function runSpotlight() {
     function nextSpot() {
         if (step >= targets.length) {
             overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.style.display = 'none';
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
                 overlay.style.clipPath = 'none';
             }, 600);
             return;
@@ -162,20 +146,13 @@ function initAgeCarousel() {
             const numRect = num.getBoundingClientRect();
             const numCenter = numRect.left + numRect.width / 2;
             const distance = Math.abs(center - numCenter);
-            if (distance < minDistance) { 
-                minDistance = distance; 
-                closest = num; 
-            }
+            if (distance < minDistance) { minDistance = distance; closest = num; }
             num.classList.remove('selected');
         });
-        if (closest) { 
-            closest.classList.add('selected'); 
-            userSelectedAge = closest.dataset.age; 
-        }
+        if (closest) { closest.classList.add('selected'); userSelectedAge = closest.dataset.age; }
     });
 }
 
-// --- 4. SINCRONIZAÇÃO DE GÊNERO ---
 function setupGenderSync() {
     const toggle = document.getElementById('gender-toggle');
     const regSection = document.getElementById('step-registration');
@@ -187,19 +164,20 @@ function setupGenderSync() {
     });
 }
 
-// --- 5. NAVEGAÇÃO ---
+// --- 4. NAVEGAÇÃO E CARROSSEL SETUPS ---
 function nextStep() {
-    const nameInput = document.getElementById('user-name');
-    const nome = nameInput ? nameInput.value.trim() : "";
-    if (!nome) { 
-        showModal('COMO PODEMOS TE CHAMAR?', 'Por favor, digite seu nome ou apelido para continuar.'); 
-        return; 
-    }
+    const nomeInput = document.getElementById('user-name');
+    const nome = nomeInput ? nomeInput.value.trim() : "";
+    if (!nome) { showModal('AVISO', 'Como devemos te chamar?'); return; }
+    
     document.getElementById('welcome-name').innerText = nome.toUpperCase();
     renderCarousel();
+    
     document.getElementById('step-registration').classList.remove('active');
     document.getElementById('step-carousel').classList.add('active');
-    setTimeout(runDemoGuide, 600);
+    
+    // CHAMADA DO DEMO GUIDE (BOLINHA)
+    setTimeout(runDemoGuide, 800);
 }
 
 function prevStep() {
@@ -208,7 +186,6 @@ function prevStep() {
     document.getElementById('step-registration').classList.add('active');
 }
 
-// --- 6. CARROSSEL DE SETUPS ---
 function renderCarousel() {
     const list = document.getElementById('carousel-list');
     const items = setups[selectedGender];
@@ -221,11 +198,7 @@ function renderCarousel() {
     loopItems.forEach(s => {
         const card = document.createElement('div');
         card.className = 'setup-card';
-        card.innerHTML = `
-            <h2>${s.nome}</h2>
-            <img src="assets/${s.id}.png" onerror="this.src='https://via.placeholder.com/220/222/fff?text=${s.nome}'">
-            <p>${s.desc}</p>
-        `;
+        card.innerHTML = `<h2>${s.nome}</h2><img src="assets/${s.id}.png" onerror="this.src='https://via.placeholder.com/220/222/fff?text=${s.nome}'"><p>${s.desc}</p>`;
         list.appendChild(card);
     });
 
@@ -234,10 +207,7 @@ function renderCarousel() {
     wrapper.ontouchend = e => {
         if (isMoving) return;
         const diff = startX - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 50) { 
-            diff > 0 ? currentIndex++ : currentIndex--; 
-            updateCarousel(list); 
-        }
+        if (Math.abs(diff) > 50) { diff > 0 ? currentIndex++ : currentIndex--; updateCarousel(list); }
     };
     updatePositionInstant(list);
 }
@@ -251,13 +221,8 @@ function updateCarousel(list) {
     currentSetupId = loopItems[currentIndex].id;
 
     list.addEventListener('transitionend', () => {
-        if (currentIndex === 0) { 
-            currentIndex = loopItems.length - 2; 
-            updatePositionInstant(list); 
-        } else if (currentIndex === loopItems.length - 1) { 
-            currentIndex = 1; 
-            updatePositionInstant(list); 
-        }
+        if (currentIndex === 0) { currentIndex = loopItems.length - 2; updatePositionInstant(list); }
+        else if (currentIndex === loopItems.length - 1) { currentIndex = 1; updatePositionInstant(list); }
         isMoving = false;
     }, { once: true });
 }
@@ -269,74 +234,80 @@ function updatePositionInstant(list) {
     currentSetupId = loopItems[currentIndex].id;
 }
 
-// --- 7. DEMO GUIDE & MODAL ---
+// --- 5. MOTOR DO DEMO GUIDE (BOLINHA) ---
 function runDemoGuide() {
     const guide = document.getElementById('demo-guide');
     const list = document.getElementById('carousel-list');
     const overlay = document.getElementById('demo-overlay');
     if (!guide || !list || !overlay) return;
+
+    // Reinicia estados
     overlay.style.display = 'block';
     guide.style.display = 'block';
+    guide.style.left = "50%";
+    guide.style.opacity = "1";
+
     setTimeout(() => {
         overlay.style.opacity = "0.6"; 
         guide.style.animation = "shrinkToDot 1s forwards";
-    }, 10);
+    }, 50);
 
     setTimeout(() => {
         guide.style.transition = "all 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
         list.style.transition = "transform 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
-        guide.style.left = "80%";
-        list.style.transform = `translateX(-${(currentIndex * 100) - 20}vw)`;
+        
+        // Swipe Right
+        guide.style.left = "85%";
+        list.style.transform = `translateX(-${(currentIndex * 100) - 25}vw)`;
 
         setTimeout(() => {
-            guide.style.left = "20%";
-            list.style.transform = `translateX(-${(currentIndex * 100) + 20}vw)`;
+            // Swipe Left
+            guide.style.left = "15%";
+            list.style.transform = `translateX(-${(currentIndex * 100) + 25}vw)`;
+            
             setTimeout(() => {
+                // Back to Center
                 guide.style.left = "50%";
                 list.style.transform = `translateX(-${currentIndex * 100}vw)`;
+                
                 setTimeout(() => {
                     overlay.style.opacity = "0";
+                    guide.style.opacity = "0";
                     setTimeout(() => {
                         overlay.style.display = 'none';
                         guide.style.display = 'none';
                         updatePositionInstant(list);
                     }, 600);
                 }, 800);
-            }, 900);
-        }, 900);
-    }, 1200);
+            }, 1000);
+        }, 1000);
+    }, 1300);
 }
 
+// --- 6. MODAL & FINALIZAÇÃO ---
 function showModal(title, message, isConfirm = false, onConfirm = null) {
     const modal = document.getElementById('modal-overlay');
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-message').innerText = message;
-    const btnContainer = document.getElementById('modal-buttons');
-    btnContainer.innerHTML = '';
+    const btnCont = document.getElementById('modal-buttons');
+    btnCont.innerHTML = '';
     
-    if (isConfirm) {
-        const btnOk = document.createElement('button');
-        btnOk.innerText = 'CONFIRMAR';
-        btnOk.className = 'btn-modal btn-modal-ok';
-        btnOk.onclick = () => { modal.style.display = 'none'; if (onConfirm) onConfirm(); };
-        btnContainer.appendChild(btnOk);
+    const btnOk = document.createElement('button');
+    btnOk.innerText = isConfirm ? 'CONFIRMAR' : 'ENTENDIDO';
+    btnOk.className = 'btn-modal';
+    btnOk.onclick = () => { modal.style.display = 'none'; if(onConfirm) onConfirm(); };
+    btnCont.appendChild(btnOk);
 
-        const btnCancel = document.createElement('button');
-        btnCancel.innerText = 'CANCELAR';
-        btnCancel.className = 'btn-modal btn-modal-cancel';
-        btnCancel.onclick = () => { modal.style.display = 'none'; };
-        btnContainer.appendChild(btnCancel);
-    } else {
-        const btnOk = document.createElement('button');
-        btnOk.innerText = 'ENTENDIDO';
-        btnOk.className = 'btn-modal btn-modal-ok';
-        btnOk.onclick = () => { modal.style.display = 'none'; };
-        btnContainer.appendChild(btnOk);
+    if (isConfirm) {
+        const btnCncl = document.createElement('button');
+        btnCncl.innerText = 'CANCELAR';
+        btnCncl.className = 'btn-modal-cancel';
+        btnCncl.onclick = () => modal.style.display = 'none';
+        btnCont.appendChild(btnCncl);
     }
     modal.style.display = 'flex';
 }
 
-// --- NOVO: FUNÇÃO DE SINCRONIZAÇÃO INICIAL FIREBASE ---
 async function syncInitialSetupToFirebase(data) {
     if (typeof db === 'undefined') return;
     const userId = data.nome.toLowerCase().trim().replace(/\s/g, '_');
@@ -345,46 +316,24 @@ async function syncInitialSetupToFirebase(data) {
             ...data,
             ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
-        console.log("Cloud: Perfil criado no Firestore.");
-    } catch (e) {
-        console.error("Cloud: Erro ao criar perfil inicial:", e);
-    }
+    } catch (e) { console.error("Cloud Error:", e); }
 }
 
 function confirmSelection() {
-    showModal(
-        'CONFIGURAR MENTE?', 
-        'Esta escolha é permanente e moldará sua experiência.', 
-        true, 
-        async () => {
-            const data = { 
-                nome: document.getElementById('user-name').value, 
-                setup: currentSetupId, 
-                genero: selectedGender, 
-                idade: userSelectedAge,
-                level: 1,
-                streak: 0
-            };
-            
-            // 1. Salva no LocalStorage
-            localStorage.setItem('mindset_chosen', currentSetupId);
-            localStorage.setItem('mindset_data', JSON.stringify(data));
-            
-            // 2. Disponibiliza global para OneSignal
-            window.userData = data; 
-            
-            // 3. Sincroniza imediatamente com Firebase Firestore
-            await syncInitialSetupToFirebase(data);
-            
-            // 4. Inicializa notificações
-            if (typeof initNotifications === "function") {
-                initNotifications();
-            }
-
-            // 5. Redireciona
-            setTimeout(() => {
-                window.location.href = 'app.html';
-            }, 1800);
-        }
-    );
+    showModal('CONFIRMAR SETUP?', 'Sua jornada mental começa agora.', true, async () => {
+        const data = { 
+            nome: document.getElementById('user-name').value, 
+            setup: currentSetupId, 
+            genero: selectedGender, 
+            idade: userSelectedAge,
+            level: 1, xp: 0, streak: 0
+        };
+        localStorage.setItem('mindset_chosen', currentSetupId);
+        localStorage.setItem('mindset_data', JSON.stringify(data));
+        
+        await syncInitialSetupToFirebase(data);
+        if (typeof sendOneSignalTags === "function") sendOneSignalTags(data);
+        
+        setTimeout(() => { window.location.href = 'app.html'; }, 1500);
+    });
 }

@@ -1,5 +1,5 @@
 /**
- * MINDSET - CORE ENGINE v2.5 FINAL (FIREBASE & ONESIGNAL SYNC)
+ * MINDSET - CORE ENGINE v2.6 (FINAL FORCE SYNC)
  * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização Cloud
  */
 
@@ -33,7 +33,7 @@ async function syncToFirebase() {
             ...userData,
             ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
-        console.log("MindSet Cloud: Sincronizado.");
+        console.log("MindSet Cloud: Sincronizado Firestore.");
     } catch (error) {
         console.error("Erro Cloud Sync:", error);
     }
@@ -68,7 +68,11 @@ window.completeTask = (id, xp) => {
         userData.tasksDoneToday--;
         userData.xp -= xp;
     }
-    handleLeveling(); save(); updateUI(); renderTasks(); syncToFirebase();
+    handleLeveling(); 
+    save(); 
+    updateUI(); 
+    renderTasks(); 
+    syncToFirebase();
 };
 
 function handleLeveling() {
@@ -195,49 +199,25 @@ window.copyPix = () => {
 };
 window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
 
-// FUNÇÃO DE ATIVAÇÃO FINAL - FORÇA BRUTA DE TAGS
+// FUNÇÃO DE ATIVAÇÃO MANUAL (ONESIGNAL)
 window.ativarNotificacoesManual = async () => {
     window.showModal("SISTEMA", "Forçando sincronização Cloud...");
     await syncToFirebase();
     
-    if (!window.OneSignalDeferred) { window.showModal("ERRO", "OneSignal indisponível."); return; }
-
-    OneSignalDeferred.push(async function(OneSignal) {
-        try {
-            const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
-            const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
-
-            // 1) Solicitar Permissão
+    if (window.OneSignalDeferred) {
+        OneSignalDeferred.push(async function(OneSignal) {
+            const localData = JSON.parse(localStorage.getItem('mindset_data'));
             await OneSignal.Notifications.requestPermission();
-
-            // 2) Esperar Subscription ID (A chave do vínculo)
-            let subId = null;
-            for (let i = 0; i < 15; i++) {
-                subId = OneSignal.User.PushSubscription.id;
-                if (subId) break;
-                await new Promise(r => setTimeout(r, 500));
+            
+            // Pequeno delay para processamento
+            await new Promise(r => setTimeout(r, 1000));
+            
+            if (typeof sendOneSignalTags === "function") {
+                await sendOneSignalTags(localData);
+                window.showModal("SUCESSO", "Conexão estabelecida e Tags enviadas!");
             }
-
-            if (!subId) throw new Error("Aguardando ativação do navegador. Recarregue a página e tente novamente.");
-
-            // 3) Login de Identidade
-            await OneSignal.login(cleanId);
-
-            // 4) Envio forçado de Etiquetas (Tags) convertidas para String
-            await OneSignal.User.addTags({
-                "nome_usuario": String(userData.nome),
-                "setup_ativo": String(userData.setup),
-                "msg_morning": String(voice.morning),
-                "msg_afternoon": String(voice.afternoon)
-            });
-
-            window.showModal("SUCESSO", "Dispositivo e Tags vinculados ao perfil: " + cleanId);
-            console.log("Vínculo completo para:", cleanId);
-        } catch (err) {
-            console.error(err);
-            window.showModal("SISTEMA", err.message);
-        }
-    });
+        });
+    }
 };
 
 window.showModal = (title, msg) => {
@@ -249,14 +229,31 @@ window.showModal = (title, msg) => {
 };
 window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
+window.confirmReset = () => {
+    window.showModal("RESETAR?", "Todo o progresso será perdido.");
+    document.getElementById('modal-buttons').innerHTML = `
+        <button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">CONFIRMAR</button>
+        <button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222; color:#fff">CANCELAR</button>
+    `;
+};
+
 function updateUI() {
     const lvl = userData.level; const req = 1000 + (lvl * 1000);
-    document.getElementById('user-rank').innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
-    document.getElementById('level-display').innerText = `LVL ${lvl}`;
-    document.getElementById('streak-count').innerText = userData.streak;
-    document.getElementById('xp-fill').style.width = `${Math.min(100, (userData.xp / req) * 100)}%`;
+    if (document.getElementById('user-rank')) document.getElementById('user-rank').innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
+    if (document.getElementById('level-display')) document.getElementById('level-display').innerText = `LVL ${lvl}`;
+    if (document.getElementById('streak-count')) document.getElementById('streak-count').innerText = userData.streak;
+    if (document.getElementById('xp-fill')) document.getElementById('xp-fill').style.width = `${Math.min(100, (userData.xp / req) * 100)}%`;
 }
-function save() { localStorage.setItem('mindset_data', JSON.stringify(userData)); }
+
+// FUNÇÃO SAVE BLINDADA: Salva local e tenta OneSignal
+function save() { 
+    localStorage.setItem('mindset_data', JSON.stringify(userData)); 
+    // Sempre que salvar progresso, tenta atualizar as Tags para o Push não vir desatualizado
+    if (typeof sendOneSignalTags === "function") {
+        sendOneSignalTags(userData);
+    }
+}
+
 window.changeMonth = (dir) => { currentViewDate.setMonth(currentViewDate.getMonth() + dir); window.renderCalendar(); };
 
 // --- 6. INICIALIZAÇÃO ---
@@ -273,7 +270,7 @@ window.onload = () => {
         document.documentElement.style.setProperty('--accent', corHex);
         document.documentElement.style.setProperty('--accent-rgb', hexToRgb(corHex));
         document.body.style.background = `radial-gradient(circle at top, ${corHex}22 0%, #000 100%)`;
-        document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
+        if (document.getElementById('user-name-display')) document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
         forceDateSync(); updateUI(); renderTasks(); syncToFirebase();
         window.dispatchEvent(new Event('hudReady'));
     }, 400);

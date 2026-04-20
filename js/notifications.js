@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v1.7
- * Sincronização Cloud, Consentimento e Listagem Dinâmica
+ * MINDSET - NOTIFICATIONS ENGINE v2.0
+ * Gerenciamento de Vozes, Agendamento e Sincronização de Tags
  */
 
 const mindsetVoices = {
@@ -16,7 +16,7 @@ const mindsetVoices = {
     'militar_ela': { morning: "Ordem e comando. Inicie as operações.", afternoon: "Sua tropa está dispersa. Recupere o controle!", night_win: "Objetivos atingidos. Padrão de elite mantido.", night_loss: "Indisciplina detectada. Retome o rigor imediatamente." },
     'investidor': { morning: "O tempo é seu ativo mais valioso. Invista-o bem.", afternoon: "Análise de portfólio: Você ainda tem débitos hoje.", night_win: "Lucro máximo! Dia encerrado em alta.", night_loss: "Prejuízo total. Você desperdiçou seu capital de tempo." },
     'investidora': { morning: "Multiplique seus resultados através do foco.", afternoon: "Atenção aos dividendos: Conclua suas tarefas.", night_win: "Patrimônio mental em crescimento. Excelente.", night_loss: "Dia de perdas. O tempo desperdiçado não volta." },
-    'zen': { morning: "Presença e calma. O agora é sua única tarefa.", afternoon: "Respire. Volte ao centro e termine o que começou.", night_win: "Mente límpida. O dia fluiu em harmoia.", night_loss: "O ruído venceu hoje. Busque o silêncio amanhã." },
+    'zen': { morning: "Presença e calma. O agora é sua única tarefa.", afternoon: "Respire. Volte ao centro e termine o que começou.", night_win: "Mente límpida. O dia fluiu em harmonia.", night_loss: "O ruído venceu hoje. Busque o silêncio amanhã." },
     'estrategista': { morning: "Cada movimento conta. Planeje e execute.", afternoon: "A melhor estratégia é quitar as pendências antes das cobranças.", night_win: "Xeque-mate. Plano executado com perfeição.", night_loss: "Falha tática. Você foi ingênuo com seu tempo." },
     'atleta_ele': { morning: "Performance máxima. Supere seus limites.", afternoon: "O treino só acaba quando a meta é batida. Continue!", night_win: "Recorde pessoal. Você é imparável.", night_loss: "Você desistiu antes da hora. Recupere amanhã." },
     'atleta_ela': { morning: "Foco, força e execução. Vá além.", afternoon: "Sem atalhos. A vitória exige suor e conclusão.", night_win: "Performance de elite. Meta esmagada.", night_loss: "Falta de fôlego nas metas. Mantenha o ritmo." },
@@ -24,123 +24,78 @@ const mindsetVoices = {
 };
 
 /**
- * Inicializa o OneSignal com Consentimento e Sincronização Cloud
+ * Envia as etiquetas de inteligência para o OneSignal.
+ * Chamado no Onboarding, no HUD e a cada save de tarefa.
  */
-function initNotifications() {
+async function sendOneSignalTags(user) {
+    if (!user || !user.nome || !user.setup) return;
+
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
-        
-        await OneSignal.setConsentGiven(true);
-
-        const localData = JSON.parse(localStorage.getItem('mindset_data'));
-        const activeUser = window.userData || localData;
-
-        if (!activeUser || !activeUser.nome) return;
-
-        const cleanName = activeUser.nome.toLowerCase().trim().replace(/\s/g, '_');
-        const voice = mindsetVoices[activeUser.setup] || mindsetVoices['patriarca'];
-
         try {
-            await OneSignal.login(cleanName); 
+            const cleanId = user.nome.toLowerCase().trim().replace(/\s/g, '_');
+            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
 
-            // ATUALIZAÇÃO: Enviando as frases do setup como Tags para o OneSignal
+            // 1. Vincula a Identidade (External ID)
+            await OneSignal.login(cleanId);
+
+            // 2. Carimba as Tags (Garantindo que sejam Strings)
             await OneSignal.User.addTags({
-                "nome_usuario": activeUser.nome,
-                "setup_ativo": activeUser.setup,
-                "nivel_atual": String(activeUser.level || 1),
-                "streak_atual": String(activeUser.streak || 0),
-                "msg_morning": voice.morning,
-                "msg_afternoon": voice.afternoon
+                "nome_usuario": String(user.nome),
+                "setup_ativo": String(user.setup),
+                "nivel_atual": String(user.level || 1),
+                "msg_morning": String(voice.morning),
+                "msg_afternoon": String(voice.afternoon),
+                "msg_night_win": String(voice.night_win),
+                "msg_night_loss": String(voice.night_loss)
             });
 
-            await OneSignal.Notifications.requestPermission();
-            console.log("MindSet Notif: Sistema sincronizado via Cloud para " + cleanName);
-        } catch (error) {
-            console.error("Erro OneSignal:", error);
+            console.log("OneSignal: Tags sincronizadas para " + cleanId);
+        } catch (err) {
+            console.error("OneSignal Tag Error:", err);
         }
     });
-
-    setInterval(checkNotificationSchedule, 60000);
 }
 
 /**
- * Verifica horários e monta mensagens com lista de tarefas pendentes
+ * Inicialização automática baseada no estado atual do usuário
+ */
+function initNotifications() {
+    const localData = JSON.parse(localStorage.getItem('mindset_data'));
+    if (localData) {
+        sendOneSignalTags(localData);
+    }
+}
+
+/**
+ * Sistema de agendamento local (Fallback)
+ * Verifica a cada minuto se deve disparar notificação local se o app estiver aberto
  */
 function checkNotificationSchedule() {
     const localData = JSON.parse(localStorage.getItem('mindset_data'));
-    const activeUser = window.userData || localData;
-    if (!activeUser) return;
+    if (!localData) return;
 
     const agora = new Date();
     const h = agora.getHours();
     const m = agora.getMinutes();
 
-    if (m !== 0) return; 
+    if (m !== 0) return; // Só roda no topo da hora
 
-    const voice = mindsetVoices[activeUser.setup] || mindsetVoices['patriarca'];
-    
-    // IMPORTANTE: Certifique-se que as chaves coincidem com o seu app.js
-    const tarefasAtivas = activeUser.dailyTaskIds || []; // IDs das tarefas de hoje
-    const concluidasIds = activeUser.completedTodayIds || [];
-    
-    // Para listar o nome da tarefa, precisamos cruzar os IDs com a biblioteca de hábitos
-    // Esta lógica assume que o app.js ou os setups injetaram os dados necessários
-    let listaPendentes = [];
-    
-    // Tentativa de recuperar nomes das tarefas se o setupLibrary estiver disponível
-    if (typeof setupLibrary !== 'undefined') {
-        const setupData = setupLibrary[activeUser.setup];
-        if (setupData) {
-            const allHabits = Object.values(setupData.habitos).flat();
-            listaPendentes = allHabits
-                .filter(h => tarefasAtivas.includes(h.id) && !concluidasIds.includes(h.id))
-                .map(h => h.task);
-        }
-    }
-
-    let titulo = "MINDSET";
+    const voice = mindsetVoices[localData.setup] || mindsetVoices['patriarca'];
+    let titulo = "SISTEMA MINDSET";
     let mensagem = "";
 
-    if (h === 9) {
-        titulo = "SISTEMA OPERACIONAL";
-        mensagem = voice.morning;
-    } 
-    else if (h === 14) {
-        titulo = "ALERTAS DE PENDÊNCIA";
-        if (listaPendentes.length > 0) {
-            const listaTxt = listaPendentes.map(t => `• ${t}`).join('\n');
-            mensagem = `${activeUser.nome}, ${voice.afternoon}\n\nPENDENTES:\n${listaTxt}`;
-        } else {
-            mensagem = `${activeUser.nome}, protocolo matinal concluído. Mantenha o foco.`;
-        }
-    } 
+    if (h === 9) mensagem = voice.morning;
+    else if (h === 14) mensagem = voice.afternoon;
     else if (h === 22) {
-        titulo = "ANÁLISE DO DIA";
-        const venceuODia = concluidasIds.length >= 3;
-        const textoBase = venceuODia ? voice.night_win : voice.night_loss;
-        
-        if (listaPendentes.length > 0) {
-            const listaTxt = listaPendentes.map(t => `• ${t}`).join('\n');
-            mensagem = `${textoBase}\n\nFALHAS NO PROTOCOLO:\n${listaTxt}`;
-        } else {
-            mensagem = textoBase;
-        }
+        const venceu = (localData.completedTodayIds || []).length >= 3;
+        mensagem = venceu ? voice.night_win : voice.night_loss;
     }
 
-    if (mensagem !== "") {
-        console.log(`[LOG] ${titulo}: ${mensagem}`);
-        
-        // Dispara notificação nativa se o app estiver aberto/minimizado
-        if (Notification.permission === "granted") {
-            new Notification(titulo, { body: mensagem });
-        }
+    if (mensagem && Notification.permission === "granted") {
+        new Notification(titulo, { body: mensagem, icon: 'assets/icone-ios.png' });
     }
 }
 
-window.ativarNotificacoesManual = () => {
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.setConsentGiven(true);
-        await OneSignal.Notifications.requestPermission();
-    });
-};
+// Inicia o monitoramento local
+setInterval(checkNotificationSchedule, 60000);
