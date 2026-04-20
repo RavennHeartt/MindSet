@@ -7,7 +7,6 @@
 let rawData = localStorage.getItem('mindset_data');
 let userData = rawData ? JSON.parse(rawData) : null;
 
-// Inicialização de segurança e recuperação de estados
 if (userData) {
     userData.level = Math.max(1, userData.level || 1);
     userData.xp = userData.xp || 0;
@@ -28,10 +27,7 @@ let currentViewDate = new Date();
 // --- FUNÇÃO DE SINCRONIZAÇÃO FIREBASE ---
 async function syncToFirebase() {
     if (typeof db === 'undefined' || !userData || !userData.nome) return;
-
-    // Criamos um ID único baseado no nome
     const userId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
-
     try {
         await db.collection("usuarios").doc(userId).set({
             ...userData,
@@ -44,7 +40,6 @@ async function syncToFirebase() {
 }
 
 // --- 2. MOTOR DE PROGRESSÃO ---
-
 function getStreakBonus(streak) {
     if (streak <= 0) return 0;
     return Math.floor(100 * (streak * 0.5 + 0.5) * streak);
@@ -52,25 +47,20 @@ function getStreakBonus(streak) {
 
 window.completeTask = (id, xp) => {
     const isAlreadyDone = userData.completedTodayIds.includes(id);
-
     if (!isAlreadyDone) {
         userData.completedTodayIds.push(id);
         userData.tasksDoneToday++;
         userData.xp += xp;
-
         if (userData.tasksDoneToday === 3) {
             userData.streak++;
             const bonus = getStreakBonus(userData.streak);
             userData.xp += bonus;
-            if (!userData.completedDays.includes(userData.lastDate)) {
-                userData.completedDays.push(userData.lastDate);
-            }
+            if (!userData.completedDays.includes(userData.lastDate)) userData.completedDays.push(userData.lastDate);
             window.showModal("META ATINGIDA", `Sequência de ${userData.streak} dias! +${bonus} XP bônus.`);
         }
     } else {
         if (userData.tasksDoneToday === 3) {
-            const bonusRemover = getStreakBonus(userData.streak);
-            userData.xp -= bonusRemover;
+            userData.xp -= getStreakBonus(userData.streak);
             userData.streak--;
             userData.completedDays = userData.completedDays.filter(d => d !== userData.lastDate);
         }
@@ -78,40 +68,28 @@ window.completeTask = (id, xp) => {
         userData.tasksDoneToday--;
         userData.xp -= xp;
     }
-
-    handleLeveling();
-    save();
-    updateUI();
-    renderTasks();
-    syncToFirebase(); // Sincroniza ao marcar/desmarcar
+    handleLeveling(); save(); updateUI(); renderTasks(); syncToFirebase();
 };
 
 function handleLeveling() {
     let xpTarget = 1000 + (userData.level * 1000);
     if (userData.xp >= xpTarget && userData.level < 10) {
-        userData.xp -= xpTarget;
-        userData.level++;
+        userData.xp -= xpTarget; userData.level++;
         window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
     } else if (userData.xp < 0 && userData.level > 1) {
         userData.level--;
-        let prevTarget = 1000 + (userData.level * 1000);
-        userData.xp = prevTarget + userData.xp;
+        userData.xp = (1000 + (userData.level * 1000)) + userData.xp;
     }
     if (userData.xp < 0) userData.xp = 0;
 }
 
 // --- 3. SINCRONIZAÇÃO E TAREFAS ---
-
 function forceDateSync() {
     const agora = new Date();
     const hojeStr = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
-    
     if (userData.lastDate !== hojeStr) {
         if (userData.lastDate !== "") {
-            userData.historyTasks[userData.lastDate] = {
-                ids: [...userData.dailyTaskIds],
-                done: [...userData.completedTodayIds]
-            };
+            userData.historyTasks[userData.lastDate] = { ids: [...userData.dailyTaskIds], done: [...userData.completedTodayIds] };
             if (userData.tasksDoneToday < 3 && userData.streak > 0) {
                 let penalidade = Math.floor(userData.level * 250);
                 userData.xp = Math.max(-500, userData.xp - penalidade);
@@ -121,16 +99,9 @@ function forceDateSync() {
         }
         userData.dailyTaskIds = userData.tomorrowTasks.length === 3 ? userData.tomorrowTasks : selectNewTasks();
         userData.tomorrowTasks = selectNewTasks();
-        const quotes = currentSetup.quotes || ["Foco no agora."];
-        userData.dailyQuote = quotes[Math.floor(Math.random() * quotes.length)];
-        userData.lastDate = hojeStr;
-        userData.tasksDoneToday = 0;
-        userData.completedTodayIds = [];
-        handleLeveling();
-        save();
-        renderTasks();
-        updateUI();
-        syncToFirebase(); // Sincroniza na virada do dia
+        userData.dailyQuote = (currentSetup.quotes || ["Foco."])[Math.floor(Math.random() * (currentSetup.quotes || ["Foco."]).length)];
+        userData.lastDate = hojeStr; userData.tasksDoneToday = 0; userData.completedTodayIds = [];
+        handleLeveling(); save(); renderTasks(); updateUI(); syncToFirebase();
     }
 }
 
@@ -145,42 +116,28 @@ function selectNewTasks() {
 }
 
 // --- 4. RENDERIZAÇÃO E UI ---
-
 function renderTasks() {
-    const list = document.getElementById('task-list');
-    if (!list) return;
+    const list = document.getElementById('task-list'); if (!list) return;
     list.innerHTML = "";
     const allHabits = Object.values(currentSetup.habitos).flat();
     const todayHabits = allHabits.filter(h => userData.dailyTaskIds.includes(h.id));
-
     todayHabits.forEach(task => {
         const isDone = userData.completedTodayIds.includes(task.id);
         const div = document.createElement('div');
         div.className = `task-item ${isDone ? 'completed' : ''}`;
-        div.innerHTML = `
-            <div class="task-info">
-                <strong>${task.task}</strong><br>
-                <small>${isDone ? 'CONCLUÍDO' : '+' + task.xp + ' XP'}</small>
-            </div>
-            <button class="btn-check" onclick="window.completeTask('${task.id}', ${task.xp})">
-                ${isDone ? '✓' : ''}
-            </button>
-        `;
+        div.innerHTML = `<div class="task-info"><strong>${task.task}</strong><br><small>${isDone ? 'CONCLUÍDO' : '+' + task.xp + ' XP'}</small></div>
+            <button class="btn-check" onclick="window.completeTask('${task.id}', ${task.xp})">${isDone ? '✓' : ''}</button>`;
         list.appendChild(div);
     });
-    const quoteEl = document.getElementById('quote-text');
-    if (quoteEl) quoteEl.innerText = `"${userData.dailyQuote}"`;
+    if (document.getElementById('quote-text')) document.getElementById('quote-text').innerText = `"${userData.dailyQuote}"`;
 }
 
 window.showSection = (id) => {
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${id}`).classList.add('active');
-    
     document.querySelectorAll('.menu-links li').forEach(li => li.classList.remove('menu-active'));
-    const activeBtn = Array.from(document.querySelectorAll('.menu-links li'))
-                           .find(li => li.getAttribute('onclick')?.includes(id));
+    const activeBtn = Array.from(document.querySelectorAll('.menu-links li')).find(li => li.getAttribute('onclick')?.includes(id));
     if (activeBtn) activeBtn.classList.add('menu-active');
-
     if (id === 'history') window.renderCalendar();
     window.toggleMenu();
 };
@@ -201,179 +158,122 @@ window.renderCalendar = () => {
         const isDone = userData.completedDays.includes(dStr);
         const el = document.createElement('div');
         el.className = `calendar-day clickable ${isDone ? 'completed' : ''} ${dStr === userData.lastDate ? 'today' : ''}`;
-        el.innerText = d;
-        el.onclick = () => window.showDayDetail(dStr);
+        el.innerText = d; el.onclick = () => window.showDayDetail(dStr);
         grid.appendChild(el);
     }
 };
 
 window.showDayDetail = (dateStr) => {
-    const cont = document.getElementById('day-detail-container');
-    if (!cont) return;
-    const agora = new Date();
-    const hojeData = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const clicadaData = new Date(y, m - 1, d);
+    const cont = document.getElementById('day-detail-container'); if (!cont) return;
+    const agora = new Date(); const hojeData = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    const [y, m, d] = dateStr.split('-').map(Number); const clicadaData = new Date(y, m - 1, d);
     const amanha = new Date(hojeData); amanha.setDate(amanha.getDate() + 1);
     const amanhaStr = amanha.getFullYear() + '-' + String(amanha.getMonth() + 1).padStart(2, '0') + '-' + String(amanha.getDate()).padStart(2, '0');
-
     let html = `<h4 class="section-title">DETALHES: ${dateStr.split('-').reverse().join('/')}</h4>`;
     let tasks = [], done = [], statusType = "";
-
-    if (dateStr === userData.lastDate) {
-        tasks = userData.dailyTaskIds; done = userData.completedTodayIds;
-    } else if (dateStr === amanhaStr) {
-        tasks = userData.tomorrowTasks; statusType = "previsto";
-    } else if (userData.historyTasks[dateStr]) {
-        tasks = userData.historyTasks[dateStr].ids;
-        done = userData.historyTasks[dateStr].done;
-    }
-
+    if (dateStr === userData.lastDate) { tasks = userData.dailyTaskIds; done = userData.completedTodayIds; }
+    else if (dateStr === amanhaStr) { tasks = userData.tomorrowTasks; statusType = "previsto"; }
+    else if (userData.historyTasks[dateStr]) { tasks = userData.historyTasks[dateStr].ids; done = userData.historyTasks[dateStr].done; }
     const all = Object.values(currentSetup.habitos).flat();
     if (tasks.length) {
         tasks.forEach(id => {
-            const h = all.find(x => x.id === id);
-            const ok = done.includes(id);
+            const h = all.find(x => x.id === id); const ok = done.includes(id);
             let label, cssClass;
             if (statusType === "previsto") { label = "PREVISTO"; cssClass = "status-previsto"; }
             else if (ok) { label = "CONCLUÍDO"; cssClass = "status-concluido"; }
-            else {
-                const ehFuturoOuHoje = clicadaData >= hojeData;
-                label = ehFuturoOuHoje ? "PENDENTE" : "FALHOU";
-                cssClass = ehFuturoOuHoje ? "status-pendente" : "status-falhou";
-            }
+            else { const ehFuturoOuHoje = clicadaData >= hojeData; label = ehFuturoOuHoje ? "PENDENTE" : "FALHOU"; cssClass = ehFuturoOuHoje ? "status-pendente" : "status-falhou"; }
             html += `<div class="history-task ${cssClass}"><span>${h ? h.task : 'Missão Antiga'}</span><small>${label}</small></div>`;
         });
-    } else {
-        html += `<p style="font-size:0.8rem; opacity:0.4">${clicadaData > amanha ? 'Missões não geradas.' : 'Sem dados.'}</p>`;
-    }
-    cont.innerHTML = html; cont.style.display = 'block';
-    cont.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else html += `<p style="font-size:0.8rem; opacity:0.4">${clicadaData > amanha ? 'Missões não geradas.' : 'Sem dados.'}</p>`;
+    cont.innerHTML = html; cont.style.display = 'block'; cont.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
 // --- 5. UTILITÁRIOS & SINCRONIZAÇÃO MANUAL ---
-
 window.copyPix = () => {
     const pixText = document.getElementById('pix-key').innerText;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(pixText).then(() => window.showModal("SUCESSO", "Chave copiada!")).catch(() => fallbackCopy(pixText));
-    } else { fallbackCopy(pixText); }
+    if (navigator.clipboard) navigator.clipboard.writeText(pixText).then(() => window.showModal("SUCESSO", "Chave copiada!"));
 };
-
-function fallbackCopy(text) {
-    const area = document.createElement("textarea");
-    area.value = text; document.body.appendChild(area);
-    area.select(); document.execCommand('copy');
-    document.body.removeChild(area);
-    window.showModal("SUCESSO", "Chave copiada!");
-}
-
 window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
 
-// FUNÇÃO DE ATIVAÇÃO MANUAL (ONESIGNAL VÍNCULO COM DELAY DE SEGURANÇA)
+// A NOVA FUNÇÃO BLINDADA COM ESPERA DE SUBSCRIPTION
 window.ativarNotificacoesManual = async () => {
-    window.showModal("SISTEMA", "Sincronizando identidade com a nuvem...");
-    
+    window.showModal("SISTEMA", "Ativando canal de notificações...");
     await syncToFirebase();
+    if (!window.OneSignalDeferred) { window.showModal("ERRO", "OneSignal não carregou."); return; }
 
-    if (window.OneSignalDeferred) {
-        OneSignalDeferred.push(async function(OneSignal) {
-            try {
-                const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
-                const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
+    OneSignalDeferred.push(async function(OneSignal) {
+        try {
+            const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
+            const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
 
-                // 1. Garante o Login (External ID)
-                await OneSignal.login(cleanId);
-                
-                // 2. Pequena pausa para o servidor OneSignal processar a identidade antes das tags
-                await new Promise(resolve => setTimeout(resolve, 2000));
+            // 1) Garantir permissão
+            await OneSignal.Notifications.requestPermission();
 
-                // 3. Grava as Etiquetas (Tags)
-                await OneSignal.User.addTags({
-                    "nome_usuario": userData.nome,
-                    "setup_ativo": userData.setup,
-                    "msg_morning": voice.morning,
-                    "msg_afternoon": voice.afternoon
-                });
-
-                // 4. Solicita Permissão Visual
-                await OneSignal.Notifications.requestPermission();
-                window.showModal("SUCESSO", "Vínculo concluído. Tags sincronizadas para: " + cleanId);
-            } catch (err) {
-                window.showModal("ERRO", "Falha na sincronização: " + err.message);
+            // 2) ESPERAR a subscription existir (O pulo do gato)
+            let subId = null;
+            for (let i = 0; i < 15; i++) { // Aumentei para 15 tentativas de 500ms
+                subId = OneSignal.User.PushSubscription.id;
+                if (subId) break;
+                await new Promise(r => setTimeout(r, 500));
             }
-        });
-    } else {
-        window.showModal("ERRO", "OneSignal não carregou. Verifique sua conexão.");
-    }
+
+            if (!subId) throw new Error("Aguardando ativação do navegador. Tente clicar novamente.");
+
+            // 3) Agora o login funciona e amarra no ID certo
+            await OneSignal.login(cleanId);
+
+            // 4) Tags sincronizadas
+            await OneSignal.User.addTags({
+                nome_usuario: userData.nome,
+                setup_ativo: userData.setup,
+                msg_morning: voice.morning,
+                msg_afternoon: voice.afternoon
+            });
+
+            window.showModal("SUCESSO", "Vínculo Cloud Concluído!");
+            console.log("External ID vinculado:", cleanId);
+        } catch (err) {
+            console.error(err);
+            window.showModal("SISTEMA", err.message);
+        }
+    });
 };
 
 window.showModal = (title, msg) => {
-    const m = document.getElementById('modal-overlay');
-    if (!m) return;
+    const m = document.getElementById('modal-overlay'); if (!m) return;
     m.style.display = 'flex';
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-message').innerText = msg;
     document.getElementById('modal-buttons').innerHTML = `<button class="btn-modal" onclick="window.closeModal()">OK</button>`;
 };
-
 window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
-window.confirmReset = () => {
-    window.showModal("RESETAR?", "Todo o progresso será perdido.");
-    document.getElementById('modal-buttons').innerHTML = `
-        <button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">CONFIRMAR</button>
-        <button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222; color:#fff">CANCELAR</button>
-    `;
-};
-
 function updateUI() {
-    const lvl = userData.level;
-    const req = 1000 + (lvl * 1000);
+    const lvl = userData.level; const req = 1000 + (lvl * 1000);
     document.getElementById('user-rank').innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
     document.getElementById('level-display').innerText = `LVL ${lvl}`;
     document.getElementById('streak-count').innerText = userData.streak;
     document.getElementById('xp-fill').style.width = `${Math.min(100, (userData.xp / req) * 100)}%`;
 }
-
-function save() { 
-    localStorage.setItem('mindset_data', JSON.stringify(userData)); 
-}
-
+function save() { localStorage.setItem('mindset_data', JSON.stringify(userData)); }
 window.changeMonth = (dir) => { currentViewDate.setMonth(currentViewDate.getMonth() + dir); window.renderCalendar(); };
 
 // --- 6. INICIALIZAÇÃO ---
-
 const hexToRgb = hex => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
     return `${r}, ${g}, ${b}`;
 };
 
 window.onload = () => {
     if (!userData) { window.location.href = 'index.html'; return; }
-    
     setTimeout(() => {
         currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
-        
         const corHex = currentSetup.cor;
         document.documentElement.style.setProperty('--accent', corHex);
         document.documentElement.style.setProperty('--accent-rgb', hexToRgb(corHex));
-        
         document.body.style.background = `radial-gradient(circle at top, ${corHex}22 0%, #000 100%)`;
         document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
-
-        forceDateSync();
-        updateUI();
-        renderTasks();
-        
-        syncToFirebase();
-
-        const initialLi = Array.from(document.querySelectorAll('.menu-links li'))
-                               .find(li => li.getAttribute('onclick')?.includes('tasks'));
-        if (initialLi) initialLi.classList.add('menu-active');
-
+        forceDateSync(); updateUI(); renderTasks(); syncToFirebase();
         window.dispatchEvent(new Event('hudReady'));
     }, 400);
 };
