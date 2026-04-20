@@ -11,6 +11,25 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MindSet">
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+      // Sua configuração do Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyDRs0XmGYfoeaSHBMBIWBRGJqIVQcaJKUc",
+        authDomain: "mindset-7348d.firebaseapp.com",
+        projectId: "mindset-7348d",
+        storageBucket: "mindset-7348d.firebasestorage.app",
+        messagingSenderId: "239649616932",
+        appId: "1:239649616932:web:2e0a5391a50a8f7d0e94b1",
+        measurementId: "G-W9VSMT8S5S"
+      };
+
+      // Inicializa o Firebase
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore(); // Variável global para o banco
+    </script>
+
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -18,7 +37,7 @@
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "sw.js", // IMPORTANTE: Deve ser igual ao index.html
+          serviceWorkerPath: "sw.js",
           allowLocalhostAsSecureOrigin: true
         });
       });
@@ -56,7 +75,6 @@
     </header>
 
     <main class="hud-main">
-        
         <div id="section-tasks" class="content-section active">
             <section class="daily-quote" id="quote-area">
                 <p id="quote-text">"Preparando sistema..."</p>
@@ -85,17 +103,12 @@
             <h2 class="section-title">APOIAR</h2>
             <div class="contribute-card">
                 <span class="icon-coffee">☕</span>
-                <p class="support-text">
-                    O <strong>MindSet</strong> é um projeto independente. Seu apoio ajuda a manter o sistema ativo e financia novas atualizações para sua evolução.
-                </p>
+                <p class="support-text">O MindSet é um projeto independente.</p>
                 <div class="pix-box">
                     <label>CHAVE PIX (E-MAIL)</label>
                     <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
-                    <button class="btn-copy" onclick="copyPix()">
-                        <span>📋</span> COPIAR CHAVE PIX
-                    </button>
+                    <button class="btn-copy" onclick="copyPix()">📋 COPIAR CHAVE PIX</button>
                 </div>
-                <p class="support-footer">Qualquer valor contribui com o projeto.</p>
             </div>
         </div>
     </main>
@@ -105,7 +118,6 @@
     </footer>
 
     <div id="spotlight-overlay" class="spotlight-overlay"></div>
-
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title">AVISO</h3>
@@ -117,11 +129,6 @@
     <script>
         (function() {
             const v = Date.now();
-            
-            // Força atualização do CSS
-            document.getElementById('app-css').href = `css/app.css?v=${v}`;
-
-            // Lista ordenada de scripts (Dependências primeiro)
             const scripts = [
                 'js/setups/patriarca.js', 'js/setups/matriarca.js', 'js/setups/cavalheiro.js',
                 'js/setups/dama.js', 'js/setups/devoto.js', 'js/setups/devota.js',
@@ -129,7 +136,7 @@
                 'js/setups/militar_ela.js', 'js/setups/investidor.js', 'js/setups/investidora.js',
                 'js/setups/atleta_ele.js', 'js/setups/atleta_ela.js', 'js/setups/zen.js',
                 'js/setups/estrategista.js', 'js/setups/minimalista.js',
-                'js/notifications.js', // Motor de notificações deve vir antes do app.js
+                'js/notifications.js', 
                 'js/app.js',
                 'js/tour.js'
             ];
@@ -137,7 +144,7 @@
             scripts.forEach(src => {
                 const s = document.createElement('script');
                 s.src = `${src}?v=${v}`;
-                s.async = false; // Mantém a ordem correta de execução
+                s.async = false;
                 document.body.appendChild(s);
             });
         })();
