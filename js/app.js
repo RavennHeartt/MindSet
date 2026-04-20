@@ -1,5 +1,5 @@
 /**
- * MINDSET - CORE ENGINE v2.0 FINAL (FIREBASE & ONESIGNAL SYNC)
+ * MINDSET - CORE ENGINE v2.5 FINAL (FIREBASE & ONESIGNAL SYNC)
  * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização Cloud
  */
 
@@ -195,43 +195,44 @@ window.copyPix = () => {
 };
 window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
 
-// A NOVA FUNÇÃO BLINDADA COM ESPERA DE SUBSCRIPTION
+// FUNÇÃO DE ATIVAÇÃO FINAL - FORÇA BRUTA DE TAGS
 window.ativarNotificacoesManual = async () => {
-    window.showModal("SISTEMA", "Ativando canal de notificações...");
+    window.showModal("SISTEMA", "Forçando sincronização Cloud...");
     await syncToFirebase();
-    if (!window.OneSignalDeferred) { window.showModal("ERRO", "OneSignal não carregou."); return; }
+    
+    if (!window.OneSignalDeferred) { window.showModal("ERRO", "OneSignal indisponível."); return; }
 
     OneSignalDeferred.push(async function(OneSignal) {
         try {
             const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
             const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
 
-            // 1) Garantir permissão
+            // 1) Solicitar Permissão
             await OneSignal.Notifications.requestPermission();
 
-            // 2) ESPERAR a subscription existir (O pulo do gato)
+            // 2) Esperar Subscription ID (A chave do vínculo)
             let subId = null;
-            for (let i = 0; i < 15; i++) { // Aumentei para 15 tentativas de 500ms
+            for (let i = 0; i < 15; i++) {
                 subId = OneSignal.User.PushSubscription.id;
                 if (subId) break;
                 await new Promise(r => setTimeout(r, 500));
             }
 
-            if (!subId) throw new Error("Aguardando ativação do navegador. Tente clicar novamente.");
+            if (!subId) throw new Error("Aguardando ativação do navegador. Recarregue a página e tente novamente.");
 
-            // 3) Agora o login funciona e amarra no ID certo
+            // 3) Login de Identidade
             await OneSignal.login(cleanId);
 
-            // 4) Tags sincronizadas
+            // 4) Envio forçado de Etiquetas (Tags) convertidas para String
             await OneSignal.User.addTags({
-                nome_usuario: userData.nome,
-                setup_ativo: userData.setup,
-                msg_morning: voice.morning,
-                msg_afternoon: voice.afternoon
+                "nome_usuario": String(userData.nome),
+                "setup_ativo": String(userData.setup),
+                "msg_morning": String(voice.morning),
+                "msg_afternoon": String(voice.afternoon)
             });
 
-            window.showModal("SUCESSO", "Vínculo Cloud Concluído!");
-            console.log("External ID vinculado:", cleanId);
+            window.showModal("SUCESSO", "Dispositivo e Tags vinculados ao perfil: " + cleanId);
+            console.log("Vínculo completo para:", cleanId);
         } catch (err) {
             console.error(err);
             window.showModal("SISTEMA", err.message);
