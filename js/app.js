@@ -270,7 +270,7 @@ function fallbackCopy(text) {
 
 window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
 
-// FUNÇÃO DE ATIVAÇÃO MANUAL (ONESIGNAL VÍNCULO)
+// FUNÇÃO DE ATIVAÇÃO MANUAL (ONESIGNAL VÍNCULO COM DELAY DE SEGURANÇA)
 window.ativarNotificacoesManual = async () => {
     window.showModal("SISTEMA", "Sincronizando identidade com a nuvem...");
     
@@ -278,20 +278,30 @@ window.ativarNotificacoesManual = async () => {
 
     if (window.OneSignalDeferred) {
         OneSignalDeferred.push(async function(OneSignal) {
-            const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
-            const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
+            try {
+                const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
+                const voice = mindsetVoices[userData.setup] || mindsetVoices['patriarca'];
 
-            await OneSignal.login(cleanId);
-            
-            await OneSignal.User.addTags({
-                "nome_usuario": userData.nome,
-                "setup_ativo": userData.setup,
-                "msg_morning": voice.morning,
-                "msg_afternoon": voice.afternoon
-            });
+                // 1. Garante o Login (External ID)
+                await OneSignal.login(cleanId);
+                
+                // 2. Pequena pausa para o servidor OneSignal processar a identidade antes das tags
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
-            await OneSignal.Notifications.requestPermission();
-            window.showModal("SUCESSO", "Dispositivo vinculado e tags sincronizadas!");
+                // 3. Grava as Etiquetas (Tags)
+                await OneSignal.User.addTags({
+                    "nome_usuario": userData.nome,
+                    "setup_ativo": userData.setup,
+                    "msg_morning": voice.morning,
+                    "msg_afternoon": voice.afternoon
+                });
+
+                // 4. Solicita Permissão Visual
+                await OneSignal.Notifications.requestPermission();
+                window.showModal("SUCESSO", "Vínculo concluído. Tags sincronizadas para: " + cleanId);
+            } catch (err) {
+                window.showModal("ERRO", "Falha na sincronização: " + err.message);
+            }
         });
     } else {
         window.showModal("ERRO", "OneSignal não carregou. Verifique sua conexão.");
