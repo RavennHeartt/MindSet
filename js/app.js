@@ -1,297 +1,319 @@
 /**
- * MINDSET - CORE ENGINE v2.6 (FINAL FORCE SYNC)
- * HUD, Progressão, Menu Dinâmico, Histórico e Sincronização Cloud
+ * MindSet - Lógica de Configuração Inicial e Instalação PWA
+ * v2.8 - RESTAURAÇÃO TOTAL (Spotlight, Demo Guide, Carrossel & Cloud Sync)
  */
 
-// 1. GESTÃO DE DADOS
-let rawData = localStorage.getItem('mindset_data');
-let userData = rawData ? JSON.parse(rawData) : null;
+const setups = {
+    ele: [
+        { id: 'patriarca', nome: 'Patriarca', desc: 'Liderança, provimento e proteção da linhagem.', cor: '#002b5c' },
+        { id: 'cavalheiro', nome: 'Cavalheiro', desc: 'Etiqueta, honra e domínio social absoluto.', cor: '#3d2b1f' },
+        { id: 'devoto', nome: 'Devoto', desc: 'Conexão espiritual e disciplina de fé diária.', cor: '#4a0e0e' },
+        { id: 'ceo_ele', nome: 'CEO', desc: 'Foco em resultados e gestão implacável.', cor: '#1a1a1a' },
+        { id: 'militar_ele', nome: 'Militar', desc: 'Rigor tático e disciplina inabalável.', cor: '#2d3b2d' },
+        { id: 'investidor', nome: 'Investidor', desc: 'Multiplicação de capital e análise de risco.', cor: '#1e4d2b' },
+        { id: 'zen', nome: 'Modo Zen', desc: 'Presença, controle emocional e foco no agora.', cor: '#1a4a44' },
+        { id: 'estrategista', nome: 'Estrategista', desc: 'Pensamento analítico e visão de futuro.', cor: '#1c2e3d' },
+        { id: 'atleta_ele', nome: 'Atleta de Elite', desc: 'Performance máxima e superação de limites.', cor: '#d45d00' },
+        { id: 'minimalista', nome: 'Minimalista', desc: 'Clareza através da remoção do excesso.', cor: '#333333' }
+    ],
+    ela: [
+        { id: 'matriarca', nome: 'Matriarca', desc: 'Gestão emocional e sabedoria central da família.', cor: '#e35336' },
+        { id: 'dama', nome: 'Dama', desc: 'Elegância, postura e influência sutil.', cor: '#ede0be' },
+        { id: 'devota', nome: 'Devota', desc: 'Piedade, fortaleza e disciplina espiritual.', cor: '#5c2d5c' },
+        { id: 'ceo_ela', nome: 'CEO', desc: 'Liderança corporativa e visão estratégica.', cor: '#1a1a1a' },
+        { id: 'militar_ela', nome: 'Militar', desc: 'Rigor, ordem e comando com disciplina.', cor: '#2d3b2d' },
+        { id: 'investidora', nome: 'Investidora', desc: 'Independência financeira e patrimônio.', cor: '#1e4d2b' },
+        { id: 'zen', nome: 'Modo Zen', desc: 'Equilíbrio interior e clareza mental.', cor: '#1a4a44' },
+        { id: 'estrategista', nome: 'Estrategista', desc: 'Análise fria e planejamento de futuro.', cor: '#1c2e3d' },
+        { id: 'atleta_ela', nome: 'Atleta de Elite', desc: 'Desempenho e alta performance.', cor: '#d45d00' },
+        { id: 'minimalista', nome: 'Minimalista', desc: 'Estética limpa e foco no essencial.', cor: '#333333' }
+    ]
+};
 
-if (userData) {
-    userData.level = Math.max(1, userData.level || 1);
-    userData.xp = userData.xp || 0;
-    userData.streak = userData.streak || 0;
-    userData.tasksDoneToday = userData.tasksDoneToday || 0;
-    userData.completedTodayIds = userData.completedTodayIds || [];
-    userData.dailyTaskIds = userData.dailyTaskIds || [];
-    userData.completedDays = userData.completedDays || [];
-    userData.historyTasks = userData.historyTasks || {};
-    userData.tomorrowTasks = userData.tomorrowTasks || [];
-    userData.lastDate = userData.lastDate || "";
-    userData.dailyQuote = userData.dailyQuote || "O sistema está pronto.";
+let currentIndex = 1; 
+let startX = 0;
+let isMoving = false;
+let currentSetupId = "";
+let selectedGender = "ele";
+let loopItems = [];
+let userSelectedAge = 15;
+let deferredPrompt; 
+
+const body = document.body;
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('mindset_chosen')) {
+        window.location.href = 'app.html';
+        return;
+    }
+    initAgeCarousel();
+    setupGenderSync();
+    initPwaInstallLogic();
+});
+
+// --- 1. LÓGICA DE INSTALAÇÃO PWA ---
+function initPwaInstallLogic() {
+    const container = document.getElementById('pwa-install-container');
+    const btnInstall = document.getElementById('btn-do-install');
+    const btnLater = document.getElementById('btn-later');
+
+    if (!container) return;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            container.classList.add('visible');
+        }
+    });
+
+    btnInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') container.classList.remove('visible');
+            deferredPrompt = null;
+        }
+    });
+
+    btnLater.addEventListener('click', (e) => {
+        e.stopPropagation();
+        container.classList.add('minimized');
+    });
 }
 
-let currentSetup = null;
-let currentViewDate = new Date();
+// --- 2. SPOTLIGHT (ONBOARDING) ---
+function startOnboarding() {
+    document.getElementById('step-welcome').classList.remove('active');
+    document.getElementById('step-registration').classList.add('active');
+    runSpotlight();
+}
 
-// --- FUNÇÃO DE SINCRONIZAÇÃO FIREBASE ---
-async function syncToFirebase() {
-    if (typeof db === 'undefined' || !userData || !userData.nome) return;
-    const userId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
+function runSpotlight() {
+    const overlay = document.getElementById('spotlight-overlay');
+    const targets = ['group-name', 'group-gender', 'group-age'];
+    if (!overlay) return;
+    overlay.style.display = 'block';
+    overlay.style.opacity = '1';
+    let step = 0;
+
+    function nextSpot() {
+        if (step >= targets.length) {
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; overlay.style.clipPath = 'none'; }, 600);
+            return;
+        }
+        const el = document.getElementById(targets[step]);
+        if (el) {
+            const rect = el.getBoundingClientRect();
+            const p = 10;
+            const t = rect.top - p, l = rect.left - p, r = rect.right + p, b = rect.bottom + p;
+            overlay.style.clipPath = `polygon(0% 0%, 0% 100%, 100% 100%, 100% 0%, 0% 0%, ${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px, ${l}px ${t}px)`;
+        }
+        step++;
+        setTimeout(nextSpot, 1200); 
+    }
+    nextSpot();
+}
+
+// --- 3. CARROSSEL DE IDADE ---
+function initAgeCarousel() {
+    const track = document.getElementById('age-carousel-track');
+    if (!track) return;
+    track.innerHTML = "";
+    for (let i = 15; i <= 65; i++) {
+        const span = document.createElement('div');
+        span.className = 'age-number';
+        span.innerText = i;
+        span.dataset.age = i;
+        track.appendChild(span);
+    }
+    setTimeout(() => {
+        const firstNum = track.querySelector('[data-age="15"]');
+        if (firstNum) firstNum.classList.add('selected');
+    }, 100);
+
+    track.addEventListener('scroll', () => {
+        const center = track.getBoundingClientRect().left + track.getBoundingClientRect().width / 2;
+        const numbers = track.querySelectorAll('.age-number');
+        let closest = null;
+        let minDistance = Infinity;
+
+        numbers.forEach(num => {
+            const numCenter = num.getBoundingClientRect().left + num.getBoundingClientRect().width / 2;
+            const distance = Math.abs(center - numCenter);
+            if (distance < minDistance) { minDistance = distance; closest = num; }
+            num.classList.remove('selected');
+        });
+        if (closest) { closest.classList.add('selected'); userSelectedAge = closest.dataset.age; }
+    });
+}
+
+function setupGenderSync() {
+    const toggle = document.getElementById('gender-toggle');
+    const regSection = document.getElementById('step-registration');
+    if (toggle && regSection) {
+        toggle.addEventListener('change', () => {
+            selectedGender = toggle.checked ? "ela" : "ele";
+            regSection.classList.remove('gender-ela', 'gender-ele');
+            regSection.classList.add(`gender-${selectedGender}`);
+        });
+    }
+}
+
+// --- 4. NAVEGAÇÃO E CARROSSEL ---
+function nextStep() {
+    const nome = document.getElementById('user-name').value.trim();
+    if (!nome) { showModal('AVISO', 'Por favor, digite seu nome para continuar.'); return; }
+    document.getElementById('welcome-name').innerText = nome.toUpperCase();
+    renderCarousel();
+    document.getElementById('step-registration').classList.remove('active');
+    document.getElementById('step-carousel').classList.add('active');
+    setTimeout(runDemoGuide, 800);
+}
+
+function prevStep() {
+    body.style.background = "#000000";
+    document.getElementById('step-carousel').classList.remove('active');
+    document.getElementById('step-registration').classList.add('active');
+}
+
+function renderCarousel() {
+    const list = document.getElementById('carousel-list');
+    const items = setups[selectedGender];
+    if (!list) return;
+    loopItems = [items[items.length - 1], ...items, items[0]];
+    currentIndex = 1;
+    list.innerHTML = "";
+    loopItems.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'setup-card';
+        card.innerHTML = `<h2>${s.nome}</h2><img src="assets/${s.id}.png" onerror="this.src='https://via.placeholder.com/220/222/fff?text=${s.nome}'"><p>${s.desc}</p>`;
+        list.appendChild(card);
+    });
+    const wrapper = document.getElementById('step-carousel');
+    wrapper.ontouchstart = e => { startX = e.touches[0].clientX; };
+    wrapper.ontouchend = e => {
+        if (isMoving) return;
+        const diff = startX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) { diff > 0 ? currentIndex++ : currentIndex--; updateCarousel(list); }
+    };
+    updatePositionInstant(list);
+}
+
+function updateCarousel(list) {
+    isMoving = true;
+    list.style.transition = "transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)";
+    list.style.transform = `translateX(-${currentIndex * 100}vw)`;
+    body.style.background = `radial-gradient(circle at center, ${loopItems[currentIndex].cor} 0%, #000000 100%)`;
+    currentSetupId = loopItems[currentIndex].id;
+    list.addEventListener('transitionend', () => {
+        if (currentIndex === 0) currentIndex = loopItems.length - 2;
+        else if (currentIndex === loopItems.length - 1) currentIndex = 1;
+        updatePositionInstant(list);
+        isMoving = false;
+    }, { once: true });
+}
+
+function updatePositionInstant(list) {
+    list.style.transition = "none";
+    list.style.transform = `translateX(-${currentIndex * 100}vw)`;
+    body.style.background = `radial-gradient(circle at center, ${loopItems[currentIndex].cor} 0%, #000000 100%)`;
+    currentSetupId = loopItems[currentIndex].id;
+}
+
+// --- 5. MOTOR DO DEMO GUIDE (BOLINHA) ---
+function runDemoGuide() {
+    const guide = document.getElementById('demo-guide');
+    const list = document.getElementById('carousel-list');
+    const overlay = document.getElementById('demo-overlay');
+    if (!guide || !list || !overlay) return;
+
+    overlay.style.display = 'block';
+    guide.style.display = 'block';
+    guide.style.left = "50%";
+    guide.style.opacity = "1";
+
+    setTimeout(() => {
+        overlay.style.opacity = "0.6"; 
+        guide.style.animation = "shrinkToDot 1s forwards";
+    }, 50);
+
+    setTimeout(() => {
+        guide.style.transition = "all 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
+        list.style.transition = "transform 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
+        
+        guide.style.left = "85%";
+        list.style.transform = `translateX(-${(currentIndex * 100) - 25}vw)`;
+
+        setTimeout(() => {
+            guide.style.left = "15%";
+            list.style.transform = `translateX(-${(currentIndex * 100) + 25}vw)`;
+            
+            setTimeout(() => {
+                guide.style.left = "50%";
+                list.style.transform = `translateX(-${currentIndex * 100}vw)`;
+                
+                setTimeout(() => {
+                    overlay.style.opacity = "0";
+                    guide.style.opacity = "0";
+                    setTimeout(() => { overlay.style.display = 'none'; guide.style.display = 'none'; }, 600);
+                }, 800);
+            }, 1000);
+        }, 1000);
+    }, 1300);
+}
+
+// --- 6. MODAL & FINALIZAÇÃO ---
+function showModal(title, message, isConfirm = false, onConfirm = null) {
+    const modal = document.getElementById('modal-overlay');
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-message').innerText = message;
+    const btnCont = document.getElementById('modal-buttons');
+    btnCont.innerHTML = '';
+    
+    const btnOk = document.createElement('button');
+    btnOk.innerText = isConfirm ? 'CONFIRMAR' : 'ENTENDIDO';
+    btnOk.className = 'btn-modal';
+    btnOk.onclick = () => { modal.style.display = 'none'; if(onConfirm) onConfirm(); };
+    btnCont.appendChild(btnOk);
+
+    if (isConfirm) {
+        const btnCncl = document.createElement('button');
+        btnCncl.innerText = 'CANCELAR';
+        btnCncl.className = 'btn-modal-cancel';
+        btnCncl.onclick = () => modal.style.display = 'none';
+        btnCont.appendChild(btnCncl);
+    }
+    modal.style.display = 'flex';
+}
+
+async function syncInitialSetupToFirebase(data) {
+    if (typeof db === 'undefined') return;
+    const userId = data.nome.toLowerCase().trim().replace(/\s/g, '_');
     try {
         await db.collection("usuarios").doc(userId).set({
-            ...userData,
+            ...data,
             ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        console.log("MindSet Cloud: Sincronizado Firestore.");
-    } catch (error) {
-        console.error("Erro Cloud Sync:", error);
-    }
+        });
+    } catch (e) { console.error("Firebase Sync Error:", e); }
 }
 
-// --- 2. MOTOR DE PROGRESSÃO ---
-function getStreakBonus(streak) {
-    if (streak <= 0) return 0;
-    return Math.floor(100 * (streak * 0.5 + 0.5) * streak);
-}
-
-window.completeTask = (id, xp) => {
-    const isAlreadyDone = userData.completedTodayIds.includes(id);
-    if (!isAlreadyDone) {
-        userData.completedTodayIds.push(id);
-        userData.tasksDoneToday++;
-        userData.xp += xp;
-        if (userData.tasksDoneToday === 3) {
-            userData.streak++;
-            const bonus = getStreakBonus(userData.streak);
-            userData.xp += bonus;
-            if (!userData.completedDays.includes(userData.lastDate)) userData.completedDays.push(userData.lastDate);
-            window.showModal("META ATINGIDA", `Sequência de ${userData.streak} dias! +${bonus} XP bônus.`);
-        }
-    } else {
-        if (userData.tasksDoneToday === 3) {
-            userData.xp -= getStreakBonus(userData.streak);
-            userData.streak--;
-            userData.completedDays = userData.completedDays.filter(d => d !== userData.lastDate);
-        }
-        userData.completedTodayIds = userData.completedTodayIds.filter(taskId => taskId !== id);
-        userData.tasksDoneToday--;
-        userData.xp -= xp;
-    }
-    handleLeveling(); 
-    save(); 
-    updateUI(); 
-    renderTasks(); 
-    syncToFirebase();
-};
-
-function handleLeveling() {
-    let xpTarget = 1000 + (userData.level * 1000);
-    if (userData.xp >= xpTarget && userData.level < 10) {
-        userData.xp -= xpTarget; userData.level++;
-        window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
-    } else if (userData.xp < 0 && userData.level > 1) {
-        userData.level--;
-        userData.xp = (1000 + (userData.level * 1000)) + userData.xp;
-    }
-    if (userData.xp < 0) userData.xp = 0;
-}
-
-// --- 3. SINCRONIZAÇÃO E TAREFAS ---
-function forceDateSync() {
-    const agora = new Date();
-    const hojeStr = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
-    if (userData.lastDate !== hojeStr) {
-        if (userData.lastDate !== "") {
-            userData.historyTasks[userData.lastDate] = { ids: [...userData.dailyTaskIds], done: [...userData.completedTodayIds] };
-            if (userData.tasksDoneToday < 3 && userData.streak > 0) {
-                let penalidade = Math.floor(userData.level * 250);
-                userData.xp = Math.max(-500, userData.xp - penalidade);
-                userData.streak = 0;
-                window.showModal("SISTEMA RESETADO", `Falha detectada ontem. Streak zerado e -${penalidade} XP.`);
-            }
-        }
-        userData.dailyTaskIds = userData.tomorrowTasks.length === 3 ? userData.tomorrowTasks : selectNewTasks();
-        userData.tomorrowTasks = selectNewTasks();
-        userData.dailyQuote = (currentSetup.quotes || ["Foco."])[Math.floor(Math.random() * (currentSetup.quotes || ["Foco."]).length)];
-        userData.lastDate = hojeStr; userData.tasksDoneToday = 0; userData.completedTodayIds = [];
-        handleLeveling(); save(); renderTasks(); updateUI(); syncToFirebase();
-    }
-}
-
-function selectNewTasks() {
-    let pool = [];
-    const lvlLimit = Math.min(userData.level || 1, 10);
-    for (let i = 1; i <= lvlLimit; i++) {
-        const habits = currentSetup.habitos[`nivel${i}`];
-        if (habits) pool = pool.concat(habits);
-    }
-    return [...pool].sort(() => 0.5 - Math.random()).slice(0, 3).map(t => t.id);
-}
-
-// --- 4. RENDERIZAÇÃO E UI ---
-function renderTasks() {
-    const list = document.getElementById('task-list'); if (!list) return;
-    list.innerHTML = "";
-    const allHabits = Object.values(currentSetup.habitos).flat();
-    const todayHabits = allHabits.filter(h => userData.dailyTaskIds.includes(h.id));
-    todayHabits.forEach(task => {
-        const isDone = userData.completedTodayIds.includes(task.id);
-        const div = document.createElement('div');
-        div.className = `task-item ${isDone ? 'completed' : ''}`;
-        div.innerHTML = `<div class="task-info"><strong>${task.task}</strong><br><small>${isDone ? 'CONCLUÍDO' : '+' + task.xp + ' XP'}</small></div>
-            <button class="btn-check" onclick="window.completeTask('${task.id}', ${task.xp})">${isDone ? '✓' : ''}</button>`;
-        list.appendChild(div);
+function confirmSelection() {
+    showModal('CONFIGURAR MENTE?', 'Sua jornada mental começa agora.', true, async () => {
+        const data = { 
+            nome: document.getElementById('user-name').value, 
+            setup: currentSetupId, 
+            genero: selectedGender, 
+            idade: userSelectedAge,
+            level: 1, xp: 0, streak: 0
+        };
+        localStorage.setItem('mindset_chosen', currentSetupId);
+        localStorage.setItem('mindset_data', JSON.stringify(data));
+        
+        await syncInitialSetupToFirebase(data);
+        if (typeof sendOneSignalTags === "function") await sendOneSignalTags(data);
+        
+        setTimeout(() => { window.location.href = 'app.html'; }, 1500);
     });
-    if (document.getElementById('quote-text')) document.getElementById('quote-text').innerText = `"${userData.dailyQuote}"`;
 }
-
-window.showSection = (id) => {
-    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`section-${id}`).classList.add('active');
-    document.querySelectorAll('.menu-links li').forEach(li => li.classList.remove('menu-active'));
-    const activeBtn = Array.from(document.querySelectorAll('.menu-links li')).find(li => li.getAttribute('onclick')?.includes(id));
-    if (activeBtn) activeBtn.classList.add('menu-active');
-    if (id === 'history') window.renderCalendar();
-    window.toggleMenu();
-};
-
-window.renderCalendar = () => {
-    const grid = document.getElementById('calendar-days');
-    const label = document.getElementById('calendar-month-year');
-    if(!grid || !label) return;
-    grid.innerHTML = "";
-    const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
-    const meses = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
-    label.innerText = `${meses[m]} ${y}`;
-    const primeiroDia = new Date(y, m, 1).getDay();
-    const ultimoDia = new Date(y, m + 1, 0).getDate();
-    for (let i = 0; i < primeiroDia; i++) grid.innerHTML += `<div class="calendar-day"></div>`;
-    for (let d = 1; d <= ultimoDia; d++) {
-        const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const isDone = userData.completedDays.includes(dStr);
-        const el = document.createElement('div');
-        el.className = `calendar-day clickable ${isDone ? 'completed' : ''} ${dStr === userData.lastDate ? 'today' : ''}`;
-        el.innerText = d; el.onclick = () => window.showDayDetail(dStr);
-        grid.appendChild(el);
-    }
-};
-
-window.showDayDetail = (dateStr) => {
-    const cont = document.getElementById('day-detail-container'); if (!cont) return;
-    const agora = new Date(); const hojeData = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-    const [y, m, d] = dateStr.split('-').map(Number); const clicadaData = new Date(y, m - 1, d);
-    const amanha = new Date(hojeData); amanha.setDate(amanha.getDate() + 1);
-    const amanhaStr = amanha.getFullYear() + '-' + String(amanha.getMonth() + 1).padStart(2, '0') + '-' + String(amanha.getDate()).padStart(2, '0');
-    let html = `<h4 class="section-title">DETALHES: ${dateStr.split('-').reverse().join('/')}</h4>`;
-    let tasks = [], done = [], statusType = "";
-    if (dateStr === userData.lastDate) { tasks = userData.dailyTaskIds; done = userData.completedTodayIds; }
-    else if (dateStr === amanhaStr) { tasks = userData.tomorrowTasks; statusType = "previsto"; }
-    else if (userData.historyTasks[dateStr]) { tasks = userData.historyTasks[dateStr].ids; done = userData.historyTasks[dateStr].done; }
-    const all = Object.values(currentSetup.habitos).flat();
-    if (tasks.length) {
-        tasks.forEach(id => {
-            const h = all.find(x => x.id === id); const ok = done.includes(id);
-            let label, cssClass;
-            if (statusType === "previsto") { label = "PREVISTO"; cssClass = "status-previsto"; }
-            else if (ok) { label = "CONCLUÍDO"; cssClass = "status-concluido"; }
-            else { const ehFuturoOuHoje = clicadaData >= hojeData; label = ehFuturoOuHoje ? "PENDENTE" : "FALHOU"; cssClass = ehFuturoOuHoje ? "status-pendente" : "status-falhou"; }
-            html += `<div class="history-task ${cssClass}"><span>${h ? h.task : 'Missão Antiga'}</span><small>${label}</small></div>`;
-        });
-    } else html += `<p style="font-size:0.8rem; opacity:0.4">${clicadaData > amanha ? 'Missões não geradas.' : 'Sem dados.'}</p>`;
-    cont.innerHTML = html; cont.style.display = 'block'; cont.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-};
-
-// --- 5. UTILITÁRIOS & SINCRONIZAÇÃO MANUAL ---
-window.copyPix = () => {
-    const pixText = document.getElementById('pix-key').innerText;
-    if (navigator.clipboard) navigator.clipboard.writeText(pixText).then(() => window.showModal("SUCESSO", "Chave copiada!"));
-};
-window.toggleMenu = () => document.getElementById('side-menu').classList.toggle('active');
-
-// FUNÇÃO DE ATIVAÇÃO MANUAL (ONESIGNAL)
-window.ativarNotificacoesManual = async () => {
-    window.showModal("SISTEMA", "Forçando sincronização Cloud...");
-    await syncToFirebase();
-    
-    if (window.OneSignalDeferred) {
-        OneSignalDeferred.push(async function(OneSignal) {
-            const localData = JSON.parse(localStorage.getItem('mindset_data'));
-            await OneSignal.Notifications.requestPermission();
-            
-            // Pequeno delay para processamento
-            await new Promise(r => setTimeout(r, 1000));
-            
-            if (typeof sendOneSignalTags === "function") {
-                await sendOneSignalTags(localData);
-                window.showModal("SUCESSO", "Conexão estabelecida e Tags enviadas!");
-            }
-        });
-    }
-};
-
-window.showModal = (title, msg) => {
-    const m = document.getElementById('modal-overlay'); if (!m) return;
-    m.style.display = 'flex';
-    document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-message').innerText = msg;
-    document.getElementById('modal-buttons').innerHTML = `<button class="btn-modal" onclick="window.closeModal()">OK</button>`;
-};
-window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
-
-window.confirmReset = () => {
-    window.showModal("RESETAR?", "Todo o progresso será perdido.");
-    document.getElementById('modal-buttons').innerHTML = `
-        <button class="btn-modal" style="background:#ff3b3b; color:white;" onclick="localStorage.clear(); window.location.href='index.html'">CONFIRMAR</button>
-        <button class="btn-modal" onclick="window.closeModal()" style="margin-top:10px; background:#222; color:#fff">CANCELAR</button>
-    `;
-};
-
-function updateUI() {
-    const lvl = userData.level; const req = 1000 + (lvl * 1000);
-    if (document.getElementById('user-rank')) document.getElementById('user-rank').innerText = (currentSetup.ranks[lvl-1] || "INICIANTE").toUpperCase();
-    if (document.getElementById('level-display')) document.getElementById('level-display').innerText = `LVL ${lvl}`;
-    if (document.getElementById('streak-count')) document.getElementById('streak-count').innerText = userData.streak;
-    if (document.getElementById('xp-fill')) document.getElementById('xp-fill').style.width = `${Math.min(100, (userData.xp / req) * 100)}%`;
-}
-
-// FUNÇÃO SAVE BLINDADA: Salva local e tenta OneSignal
-function save() { 
-    localStorage.setItem('mindset_data', JSON.stringify(userData)); 
-    // Sempre que salvar progresso, tenta atualizar as Tags para o Push não vir desatualizado
-    if (typeof sendOneSignalTags === "function") {
-        sendOneSignalTags(userData);
-    }
-}
-
-window.changeMonth = (dir) => { currentViewDate.setMonth(currentViewDate.getMonth() + dir); window.renderCalendar(); };
-
-// --- 6. INICIALIZAÇÃO ---
-const hexToRgb = hex => {
-    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
-    return `${r}, ${g}, ${b}`;
-};
-
-window.onload = () => {
-    if (!userData) { window.location.href = 'index.html'; return; }
-    setTimeout(() => {
-        currentSetup = setupLibrary[userData.setup] || setupLibrary['patriarca'];
-        const corHex = currentSetup.cor;
-        document.documentElement.style.setProperty('--accent', corHex);
-        document.documentElement.style.setProperty('--accent-rgb', hexToRgb(corHex));
-        document.body.style.background = `radial-gradient(circle at top, ${corHex}22 0%, #000 100%)`;
-        if (document.getElementById('user-name-display')) document.getElementById('user-name-display').innerText = userData.nome.toUpperCase();
-        forceDateSync(); updateUI(); renderTasks(); syncToFirebase();
-        window.dispatchEvent(new Event('hudReady'));
-    }, 400);
-};
-
-const setupLibrary = {
-    'patriarca': typeof patriarcaData !== 'undefined' ? patriarcaData : null,
-    'matriarca': typeof matriarcaData !== 'undefined' ? matriarcaData : null,
-    'cavalheiro': typeof cavalheiroData !== 'undefined' ? cavalheiroData : null,
-    'dama': typeof damaData !== 'undefined' ? damaData : null,
-    'devoto': typeof devotoData !== 'undefined' ? devotoData : null,
-    'devota': typeof devotaData !== 'undefined' ? devotaData : null,
-    'ceo_ele': typeof ceoEleData !== 'undefined' ? ceoEleData : null,
-    'ceo_ela': typeof ceoElaData !== 'undefined' ? ceoElaData : null,
-    'militar_ele': typeof militarEleData !== 'undefined' ? militarEleData : null,
-    'militar_ela': typeof militarElaData !== 'undefined' ? militarElaData : null,
-    'investidor': typeof investidorData !== 'undefined' ? investidorData : null,
-    'investidora': typeof investidoraData !== 'undefined' ? investidoraData : null,
-    'atleta_ele': typeof atletaEleData !== 'undefined' ? atletaEleData : null,
-    'atleta_ela': typeof atletaElaData !== 'undefined' ? atletaElaData : null,
-    'zen': typeof zenData !== 'undefined' ? zenData : null,
-    'estrategista': typeof estrategistaData !== 'undefined' ? estrategistaData : null,
-    'minimalista': typeof minimalistaData !== 'undefined' ? minimalistaData : null
-};
