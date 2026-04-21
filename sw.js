@@ -1,29 +1,33 @@
+// 1. IMPORTAÇÃO DO ONESIGNAL (Sempre no topo)
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
 const CACHE_NAME = 'mindset-v1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
+    './app.html',
     './css/main.css',
+    './css/app.css',
     './js/main.js',
+    './js/app.js',
+    './js/notifications.js',
     './manifest.json',
+    './assets/icone-ios.png',
     './assets/icone-192.png',
-    './assets/icone-512.png',
-    './assets/icone-maskable.png'
+    './assets/icone-512.png'
 ];
 
 let dailyConfig = null;
 
-// 1. INSTALAÇÃO: Salva os arquivos essenciais offline
+// INSTALAÇÃO: Cache de arquivos
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            console.log("MindSet: Arquivos cacheados com sucesso.");
-            return cache.addAll(ASSETS_TO_CACHE);
-        })
+        caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
     );
     self.skipWaiting();
 });
 
-// 2. ATIVAÇÃO: Limpa caches antigos se você atualizar a versão
+// ATIVAÇÃO: Limpeza de caches antigos
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys => {
@@ -35,14 +39,18 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-// 3. ESTRATÉGIA DE REDE: "Stale While Revalidate" (Rápido e sempre atualizado)
+// ESTRATÉGIA FETCH: Stale-While-Revalidate
 self.addEventListener('fetch', event => {
+    if (event.request.url.includes('onesignal') || event.request.url.includes('firebase')) return;
+
     event.respondWith(
         caches.match(event.request).then(cachedResponse => {
             const fetchPromise = fetch(event.request).then(networkResponse => {
-                caches.open(CACHE_NAME).then(cache => {
-                    cache.put(event.request, networkResponse.clone());
-                });
+                if (networkResponse && networkResponse.status === 200) {
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, networkResponse.clone());
+                    });
+                }
                 return networkResponse;
             });
             return cachedResponse || fetchPromise;
@@ -50,75 +58,25 @@ self.addEventListener('fetch', event => {
     );
 });
 
-// 4. MENSAGENS: Recebe configurações do front-end
+// COMUNICAÇÃO E SINCRONIZAÇÃO LOCAL
 self.addEventListener('message', event => {
-    if (event.data.type === 'SET_DAILY_CONFIG') {
-        dailyConfig = event.data.config;
-        console.log("MindSet: Configuração de notificações atualizada.");
-    }
+    if (event.data.type === 'SET_DAILY_CONFIG') dailyConfig = event.data.config;
 });
 
-// 5. SINCRONIZAÇÃO PERIÓDICA: Roda sua lógica de notificações
 self.addEventListener('periodicsync', event => {
-    if (event.tag === 'check-tasks') {
-        event.waitUntil(checkAndSend());
-    }
+    if (event.tag === 'check-tasks') event.waitUntil(checkAndSend());
 });
 
-// 6. LÓGICA DE NOTIFICAÇÕES (Sua lógica original preservada)
 async function checkAndSend() {
     if (!dailyConfig) return;
-
     const agora = new Date();
-    const hora = agora.getHours();
-    const minutos = agora.getMinutes();
+    const h = agora.getHours();
+    if (h < 8 || h > 22) return;
 
-    if (hora < dailyConfig.startHour || hora > dailyConfig.endHour) return;
-
-    let title = "";
-    let body = "";
-    let shouldNotify = false;
-
-    // Lógica Original de Sorteio (20% de chance)
-    if (Math.random() < 0.2) {
-        title = "MINDSET";
-        body = dailyConfig.style.pendente;
-        shouldNotify = true;
-    }
-
-    // Eventos Específicos
-    if (hora === 7 && minutos < 30) {
-        title = "ORDEM DO DIA";
-        body = dailyConfig.style.quote + dailyConfig.quote;
-        shouldNotify = true;
-    }
-    
-    if (hora > 12 && hora < 18 && Math.random() < 0.3) {
-        title = "CONSISTÊNCIA";
-        body = `🔥 ${dailyConfig.nome}, você está com ${dailyConfig.streak} dias de sequência!`;
-        shouldNotify = true;
-    }
-
-    if (dailyConfig.showDonate && hora === 20) {
-        title = "APOIE O PROJETO";
-        body = "Gostando da sua evolução? Apoie o desenvolvedor.";
-        shouldNotify = true;
-    }
-
-    if (hora === 21 && minutos > 30) {
-        title = "RELATÓRIO FINAL";
-        body = dailyConfig.tasksDone >= 3 ? dailyConfig.style.vitoria : dailyConfig.style.derrota;
-        shouldNotify = true;
-    }
-
-    if (shouldNotify) {
-        await self.registration.showNotification(title, {
-            body: body,
-            icon: 'assets/icone-192.png', // Usando o ícone do manifest
-            badge: 'assets/icone-192.png', // Ícone que aparece na barra de status
-            vibrate: [200, 100, 200],
-            tag: 'mindset-alert', // Evita empilhar 10 notificações iguais
-            renotify: true
-        });
-    }
+    // Notificação local simples se o app estiver aberto/background
+    await self.registration.showNotification("MINDSET", {
+        body: "Verifique suas missões de hoje.",
+        icon: 'assets/icone-192.png',
+        tag: 'mindset-local'
+    });
 }
