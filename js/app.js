@@ -1,6 +1,6 @@
 /**
- * MINDSET - CORE ENGINE v3.8
- * HUD, Calendário, Sync Cloud & OneSignal Hard Reset Integration
+ * MINDSET - CORE ENGINE v3.9
+ * HUD, Calendário, Sync Cloud & OneSignal Reactive Integration
  */
 
 // 1. ESTADO GLOBAL
@@ -15,6 +15,7 @@ function loadUserData() {
         const rawData = localStorage.getItem('mindset_data');
         if (rawData) {
             userData = JSON.parse(rawData);
+            // Garantia de propriedades mínimas
             userData.level = Math.max(1, userData.level || 1);
             userData.xp = userData.xp || 0;
             userData.streak = userData.streak || 0;
@@ -66,13 +67,13 @@ window.completeTask = (id, xp) => {
     renderTasks(); 
     syncToFirebase();
     
-    // DEBOUNCE: Sincroniza a "Marmita" (overall) com OneSignal
+    // REATIVIDADE ONESIGNAL: Atualiza a "Marmita" ao marcar/desmarcar
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-        if (typeof sendOneSignalTags === "function") {
-            sendOneSignalTags(userData);
+        if (typeof window.sincronizarMindsetOneSignal === "function") {
+            window.sincronizarMindsetOneSignal(userData);
         }
-    }, 2000);
+    }, 1500); // 1.5s de debounce para evitar spam na API
 };
 
 function handleLeveling() {
@@ -82,8 +83,9 @@ function handleLeveling() {
         userData.level++;
         window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
         
-        if (typeof sendOneSignalTags === "function") {
-            sendOneSignalTags(userData);
+        // Sincroniza OneSignal para refletir novo nível
+        if (typeof window.sincronizarMindsetOneSignal === "function") {
+            window.sincronizarMindsetOneSignal(userData);
         }
     }
 }
@@ -254,7 +256,7 @@ window.showModal = (title, msg) => {
 window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
 window.confirmReset = () => {
-    if (confirm("Resetar sistema? Isso apagará o progresso local.")) {
+    if (confirm("Resetar sistema? Isso apagará o progresso local e desconectará notificações.")) {
         localStorage.clear();
         window.location.href = 'index.html';
     }
@@ -267,6 +269,7 @@ function save() {
 
 async function syncToFirebase() {
     if (typeof db === 'undefined' || !userData || !userData.nome) return;
+    // IMPORTANTE: userId agora é fixado pelo nome para bater com o Robô
     const userId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
     try {
         await db.collection("usuarios").doc(userId).set({ 
@@ -316,8 +319,9 @@ function forceDateSync() {
         
         save();
 
-        if (typeof sendOneSignalTags === "function") {
-            sendOneSignalTags(userData);
+        // Atualiza OneSignal com as novas tarefas do dia
+        if (typeof window.sincronizarMindsetOneSignal === "function") {
+            window.sincronizarMindsetOneSignal(userData);
         }
     }
 }
@@ -356,10 +360,10 @@ window.onload = () => {
             renderTasks();
             syncToFirebase();
 
-            // SINCRONIA SILENCIOSA: Atualiza veteranos com a tag overall ao abrir
-            if (typeof sendOneSignalTags === "function") {
-                console.log("🔄 MindSet: Sincronizando registro de veterano...");
-                sendOneSignalTags(userData);
+            // SINCRONIA INICIAL: Atualiza OneSignal ao abrir o app
+            if (typeof window.sincronizarMindsetOneSignal === "function") {
+                console.log("🔄 MindSet: Sincronizando tags iniciais...");
+                window.sincronizarMindsetOneSignal(userData);
             }
         }
     }, 800);

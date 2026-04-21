@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v9.0
- * Foco: Limpeza Bruta de Cache + Reset de Service Worker + Vínculo Force
+ * MINDSET - NOTIFICATIONS ENGINE v10.0
+ * Foco: Popup Persistente + Reatividade Automática + Vínculo por UID
  */
 
 const mindsetVoices = {
@@ -24,77 +24,83 @@ const mindsetVoices = {
 };
 
 /**
- * Envia as tags de sincronia
+ * SINCRONIA REATIVA
+ * Use esta função no app.js sempre que o usuário abrir o app ou marcar/desmarcar tarefas.
  */
-function sendOneSignalTags(user) {
+window.sincronizarMindsetOneSignal = (user) => {
     if (!user || !user.uid) return;
+    
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(function(OneSignal) {
-        const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
-        const pendentesCount = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
-        const hora = new Date().getHours();
-        
-        let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
-                      (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
-                      (pendentesCount === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+            const total = (user.dailyTaskIds || []).length;
+            const feitas = (user.completedTodayIds || []).length;
+            const pendentes = total - feitas;
+            const hora = new Date().getHours();
+            
+            let marmita = "";
+            if (hora >= 5 && hora < 12) {
+                marmita = `${user.nome}, ${voice.morning}`;
+            } else if (hora >= 12 && hora < 18) {
+                marmita = `${user.nome}, ${voice.afternoon}`;
+            } else {
+                marmita = (pendentes === 0) 
+                    ? voice.night_win.replace("$", user.nome) 
+                    : voice.night_loss.replace("$", user.nome);
+            }
 
-        OneSignal.User.addTags({ 
-            "overall": String(marmita), 
-            "uid_vinculado": String(user.uid),
-            "last_sync": new Date().toISOString()
-        });
-        console.log("✅ Tags sincronizadas para UID:", user.uid);
+            // Atualiza tags no OneSignal para garantir que o robô do GitHub tenha dados frescos
+            await OneSignal.User.addTags({
+                "overall": String(marmita),
+                "pendentes": String(pendentes),
+                "setup": String(user.setup),
+                "uid": String(user.uid)
+            });
+            console.log("🔄 OneSignal: Tags sincronizadas via reatividade.");
+        } catch (e) {
+            console.warn("Falha na sincronia reativa:", e);
+        }
     });
-}
+};
 
 /**
- * LIMPEZA BRUTA + REATIVAÇÃO
+ * ATIVAR NOTIFICAÇÕES (O BOTÃO DE CONFIGURAÇÕES)
+ * Força o desvínculo e pede permissão novamente para tentar disparar o popup.
  */
 window.ativarNotificacoesManual = async () => {
-    console.log("🧹 Iniciando Limpeza Profunda...");
+    console.log("🚀 Iniciando processo para forçar popup de permissão...");
     
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
 
-    try {
-        // 1. Limpar Service Workers (Causa comum de cache de ID antigo)
-        if ('serviceWorker' in navigator) {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (let registration of registrations) {
-                await registration.unregister();
-                console.log("🗑️ Service Worker removido.");
-            }
-        }
-
-        // 2. Limpar Bancos de Dados do OneSignal (IndexedDB)
-        const dbs = ['OneSignalSDK', 'OneSignalSDK_IDB'];
-        dbs.forEach(dbName => {
-            const req = indexedDB.deleteDatabase(dbName);
-            req.onsuccess = () => console.log(`🗑️ DB ${dbName} deletado.`);
-        });
-
-        // 3. Reiniciar OneSignal
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async function(OneSignal) {
-            console.log("🚀 Reiniciando OneSignal com UID:", user.uid);
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+            // 1. "Limpa" a subscrição atual (Opt-Out)
+            await OneSignal.User.PushSubscription.optOut();
             
-            // Força o deslogue e login para carimbar o External ID
-            await OneSignal.logout(); 
+            // 2. Garante que o login está correto no UID do Firebase
             await OneSignal.login(user.uid);
-            
-            // Solicita permissão do zero
+
+            // 3. Solicita permissão (Aqui o navegador deve tentar mostrar o popup)
             await OneSignal.Notifications.requestPermission();
             
-            // Sincroniza
-            sendOneSignalTags(user);
-            
-            if (window.showModal) window.showModal("SISTEMA", "Cache limpo e alertas reativados com sucesso!");
-        });
+            // 4. Ativa novamente a subscrição (Opt-In)
+            await OneSignal.User.PushSubscription.optIn();
 
-    } catch (err) {
-        console.error("Erro na limpeza bruta:", err);
-    }
+            // 5. Envia as tags iniciais
+            window.sincronizarMindsetOneSignal(user);
+
+            if (window.showModal) {
+                window.showModal("SISTEMA", "Verifique se o seu navegador solicitou permissão para notificações.");
+            }
+        } catch (e) {
+            console.error("Erro ao tentar disparar popup:", e);
+        }
+    });
 };
 
+// Atalho para garantir compatibilidade com nomes antigos de funções
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
