@@ -1,13 +1,13 @@
 /**
- * MINDSET - CORE ENGINE v3.7
- * HUD, Calendário, Sync Cloud & OneSignal Connection Manager
+ * MINDSET - CORE ENGINE v3.8
+ * HUD, Calendário, Sync Cloud & OneSignal Hard Reset Integration
  */
 
 // 1. ESTADO GLOBAL
 let userData = null;
 let currentSetup = null;
 let currentViewDate = new Date();
-let debounceTimer; // Trava de segurança para o OneSignal
+let debounceTimer; 
 
 // 2. CARREGAMENTO E SEGURANÇA
 function loadUserData() {
@@ -15,7 +15,6 @@ function loadUserData() {
         const rawData = localStorage.getItem('mindset_data');
         if (rawData) {
             userData = JSON.parse(rawData);
-            // Sanitização de campos obrigatórios
             userData.level = Math.max(1, userData.level || 1);
             userData.xp = userData.xp || 0;
             userData.streak = userData.streak || 0;
@@ -67,11 +66,10 @@ window.completeTask = (id, xp) => {
     renderTasks(); 
     syncToFirebase();
     
-    // --- LÓGICA DE DEBOUNCE ---
+    // DEBOUNCE: Sincroniza a "Marmita" (overall) com OneSignal
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
         if (typeof sendOneSignalTags === "function") {
-            console.log("🚀 Sincronizando estado consolidado com OneSignal...");
             sendOneSignalTags(userData);
         }
     }, 2000);
@@ -90,31 +88,7 @@ function handleLeveling() {
     }
 }
 
-// --- 4. FUNÇÕES DE RECONEXÃO (ALERTA) ---
-window.ativarNotificacoesManual = async () => {
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
-        console.log("🔄 Tentando reestabelecer conexão com OneSignal...");
-        
-        // 1. Solicita permissão (abre o pop-up nativo se necessário)
-        await OneSignal.Notifications.requestPermission();
-        
-        // 2. Garante o vínculo do ID
-        if (userData && userData.nome) {
-            const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
-            await OneSignal.login(cleanId);
-            
-            // 3. Força atualização das tags (Marmita)
-            if (typeof sendOneSignalTags === "function") {
-                sendOneSignalTags(userData);
-            }
-            
-            window.showModal("SISTEMA", "Conexão com os alertas de elite renovada!");
-        }
-    });
-};
-
-// --- 5. CALENDÁRIO & HISTÓRICO ---
+// --- 4. CALENDÁRIO & HISTÓRICO ---
 window.changeMonth = (dir) => {
     currentViewDate.setMonth(currentViewDate.getMonth() + dir);
     renderCalendar();
@@ -202,7 +176,7 @@ function renderHistoryItem(name, status) {
     return `<div class="history-task status-${status}"><span>${name}</span><small>${labels[status]}</small></div>`;
 }
 
-// --- 6. NAVEGAÇÃO & UI ---
+// --- 5. NAVEGAÇÃO & UI ---
 window.toggleMenu = () => {
     const menu = document.getElementById('side-menu');
     if (menu) menu.classList.toggle('active');
@@ -257,7 +231,7 @@ function updateUI() {
     document.documentElement.style.setProperty('--accent', currentSetup.cor || '#007bff');
 }
 
-// --- 7. UTILITÁRIOS & MODAIS ---
+// --- 6. UTILITÁRIOS & MODAIS ---
 window.copyPix = () => {
     const pixElement = document.getElementById('pix-key');
     if (pixElement) {
@@ -286,7 +260,7 @@ window.confirmReset = () => {
     }
 };
 
-// --- 8. LÓGICA DE DATAS & SYNC ---
+// --- 7. LÓGICA DE DATAS & SYNC ---
 function save() { 
     localStorage.setItem('mindset_data', JSON.stringify(userData));
 }
@@ -348,7 +322,7 @@ function forceDateSync() {
     }
 }
 
-// --- 9. INICIALIZAÇÃO ---
+// --- 8. INICIALIZAÇÃO ---
 window.onload = () => {
     loadUserData();
     if (!userData) return;
@@ -382,7 +356,9 @@ window.onload = () => {
             renderTasks();
             syncToFirebase();
 
+            // SINCRONIA SILENCIOSA: Atualiza veteranos com a tag overall ao abrir
             if (typeof sendOneSignalTags === "function") {
+                console.log("🔄 MindSet: Sincronizando registro de veterano...");
                 sendOneSignalTags(userData);
             }
         }

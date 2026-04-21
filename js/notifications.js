@@ -1,7 +1,7 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v4.0
- * Estratégia: Marmita Pronta (1 Tag para todas as mensagens)
- * Plano: Gratuito (Limite de 2 Tags)
+ * MINDSET - NOTIFICATIONS ENGINE v4.5
+ * Estratégia: Marmita Pronta (Tag 'overall' + Tag 'pendentes')
+ * Recursos: Hard Reset de Subscrição e Sincronia de Veteranos
  */
 
 const mindsetVoices = {
@@ -25,7 +25,7 @@ const mindsetVoices = {
 };
 
 /**
- * Sincroniza apenas 2 Tags para respeitar o plano gratuito
+ * SINCRONIZAÇÃO DE TAGS (Respeitando limite de 2 tags do Plano Gratuito)
  */
 async function sendOneSignalTags(user) {
     if (!user || !user.nome) return;
@@ -42,33 +42,69 @@ async function sendOneSignalTags(user) {
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
             const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
             
-            // Lógica da "Marmita": O JS decide o texto final aqui
+            // Montagem da Marmita (overall) baseada no horário atual
             const hora = new Date().getHours();
-            let textoMarmita = "";
+            let marmita = "";
 
             if (hora < 12) {
-                textoMarmita = `${user.nome}, ${voice.morning}`;
+                marmita = `${user.nome}, ${voice.morning}`;
             } else if (hora < 18) {
-                textoMarmita = `${voice.afternoon} Pendências: ${pendentes}`;
+                marmita = `${voice.afternoon} Falta(m) ${pendentes} missão(ões).`;
             } else {
-                textoMarmita = (pendentes === 0) ? voice.night_win : `${voice.night_loss} (${pendentes} falhas)`;
+                marmita = (pendentes === 0) ? voice.night_win : `${voice.night_loss} (${pendentes} falhas)`;
             }
 
-            // Enviando as 2 tags permitidas
+            // Enviando apenas as 2 Tags permitidas no plano Free
             await OneSignal.User.addTags({
-                "overall": String(textoMarmita),
-                "status_missao": (pendentes === 0) ? "concluida" : "pendente"
+                "overall": String(marmita),
+                "pendentes": String(pendentes)
             });
 
-            console.log("✅ OneSignal: Marmita sincronizada!");
+            console.log(`✅ OneSignal: Marmita pronta para ${user.nome}.`);
         } catch (err) {
-            console.warn("OneSignal: Sincronização falhou (Verifique limite de tags).");
+            console.warn("OneSignal: Erro de Tags ou Login.");
         }
     });
 }
 
 /**
- * Backup local (mantido apenas para alertas imediatos com o app aberto)
+ * HARD RESET: Força o navegador a reiniciar a conexão
+ * Útil para usuários veteranos que não estão recebendo a tag 'overall'
+ */
+window.resetarNotificacoesTotal = async () => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        console.log("⚠️ MindSet: Iniciando Hard Reset de Alertas...");
+
+        try {
+            // 1. Limpa subscrição antiga
+            await OneSignal.User.PushSubscription.optOut();
+            
+            // 2. Solicita permissão novamente (se já tiver, ele apenas valida)
+            await OneSignal.Notifications.requestPermission();
+            
+            const rawData = localStorage.getItem('mindset_data');
+            if (rawData) {
+                const user = JSON.parse(rawData);
+                const cleanId = user.nome.toLowerCase().trim().replace(/\s/g, '_');
+                
+                // 3. Força Re-login
+                await OneSignal.login(cleanId);
+                
+                // 4. Re-habilita e envia tags
+                await OneSignal.User.PushSubscription.optIn();
+                sendOneSignalTags(user);
+                
+                window.showModal("SISTEMA", "Protocolo de Alertas reiniciado com sucesso!");
+            }
+        } catch (e) {
+            console.error("Erro no Hard Reset:", e);
+        }
+    });
+};
+
+/**
+ * VERIFICAÇÃO LOCAL (Backup para app aberto)
  */
 function checkNotificationSchedule() {
     const rawData = localStorage.getItem('mindset_data');
