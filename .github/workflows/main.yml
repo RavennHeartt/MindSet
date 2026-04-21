@@ -1,0 +1,29 @@
+name: MindSet Cron Push
+
+on:
+  schedule:
+    # Horários em UTC (Brasília é -3h)
+    # 12:00 UTC = 09:00 BRT
+    # 17:00 UTC = 14:00 BRT
+    # 01:00 UTC = 22:00 BRT
+    - cron: '0 12 * * *'
+    - cron: '0 17 * * *'
+    - cron: '0 1 * * *'
+  workflow_dispatch: # Permite que você teste clicando em um botão no GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install Dependencies
+        run: npm install axios
+      - name: Run Trigger Script
+        env:
+          ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+          ONESIGNAL_REST_KEY: ${{ secrets.ONESIGNAL_REST_KEY }}
+        run: node trigger_push.js
