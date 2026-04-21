@@ -1,6 +1,6 @@
 /**
- * MINDSET - CORE ENGINE v3.6
- * HUD, Calendário, Sync Cloud & OneSignal Integration (com Debounce)
+ * MINDSET - CORE ENGINE v3.7
+ * HUD, Calendário, Sync Cloud & OneSignal Connection Manager
  */
 
 // 1. ESTADO GLOBAL
@@ -67,8 +67,7 @@ window.completeTask = (id, xp) => {
     renderTasks(); 
     syncToFirebase();
     
-    // --- LÓGICA DE DEBOUNCE (NOVO) ---
-    // Aguarda 2 segundos de inatividade antes de enviar as tags para evitar erro de colisão
+    // --- LÓGICA DE DEBOUNCE ---
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
         if (typeof sendOneSignalTags === "function") {
@@ -85,14 +84,37 @@ function handleLeveling() {
         userData.level++;
         window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
         
-        // Sincroniza novo nível
         if (typeof sendOneSignalTags === "function") {
             sendOneSignalTags(userData);
         }
     }
 }
 
-// --- 4. CALENDÁRIO & HISTÓRICO ---
+// --- 4. FUNÇÕES DE RECONEXÃO (ALERTA) ---
+window.ativarNotificacoesManual = async () => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        console.log("🔄 Tentando reestabelecer conexão com OneSignal...");
+        
+        // 1. Solicita permissão (abre o pop-up nativo se necessário)
+        await OneSignal.Notifications.requestPermission();
+        
+        // 2. Garante o vínculo do ID
+        if (userData && userData.nome) {
+            const cleanId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
+            await OneSignal.login(cleanId);
+            
+            // 3. Força atualização das tags (Marmita)
+            if (typeof sendOneSignalTags === "function") {
+                sendOneSignalTags(userData);
+            }
+            
+            window.showModal("SISTEMA", "Conexão com os alertas de elite renovada!");
+        }
+    });
+};
+
+// --- 5. CALENDÁRIO & HISTÓRICO ---
 window.changeMonth = (dir) => {
     currentViewDate.setMonth(currentViewDate.getMonth() + dir);
     renderCalendar();
@@ -180,7 +202,7 @@ function renderHistoryItem(name, status) {
     return `<div class="history-task status-${status}"><span>${name}</span><small>${labels[status]}</small></div>`;
 }
 
-// --- 5. NAVEGAÇÃO & UI ---
+// --- 6. NAVEGAÇÃO & UI ---
 window.toggleMenu = () => {
     const menu = document.getElementById('side-menu');
     if (menu) menu.classList.toggle('active');
@@ -235,7 +257,7 @@ function updateUI() {
     document.documentElement.style.setProperty('--accent', currentSetup.cor || '#007bff');
 }
 
-// --- 6. UTILITÁRIOS & MODAIS ---
+// --- 7. UTILITÁRIOS & MODAIS ---
 window.copyPix = () => {
     const pixElement = document.getElementById('pix-key');
     if (pixElement) {
@@ -264,7 +286,7 @@ window.confirmReset = () => {
     }
 };
 
-// --- 7. LÓGICA DE DATAS & SYNC ---
+// --- 8. LÓGICA DE DATAS & SYNC ---
 function save() { 
     localStorage.setItem('mindset_data', JSON.stringify(userData));
 }
@@ -326,7 +348,7 @@ function forceDateSync() {
     }
 }
 
-// --- 8. INICIALIZAÇÃO ---
+// --- 9. INICIALIZAÇÃO ---
 window.onload = () => {
     loadUserData();
     if (!userData) return;
