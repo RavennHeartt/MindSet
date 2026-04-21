@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v7.0
- * Foco: Estabilidade total no Firefox/Mobile e Vínculo de ID sem erros
+ * MINDSET - NOTIFICATIONS ENGINE v7.8
+ * Foco: Resiliência contra erros de rede e instabilidade de Header
  */
 
 const mindsetVoices = {
@@ -26,65 +26,50 @@ const mindsetVoices = {
 async function sendOneSignalTags(user) {
     if (!user || !user.uid) return;
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-            await OneSignal.login(user.uid);
-            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
-            const tarefasTotal = user.dailyTaskIds || [];
-            const tarefasFeitas = user.completedTodayIds || [];
-            const pendentesCount = tarefasTotal.length - tarefasFeitas.length;
-            
-            let listaMissoes = "";
-            if (typeof currentSetup !== 'undefined' && currentSetup.habitos) {
-                const allHabits = Object.values(currentSetup.habitos).flat();
-                const pendentesNomes = tarefasTotal
-                    .filter(id => !tarefasFeitas.includes(id))
-                    .map(id => allHabits.find(h => h.id === id)?.task)
-                    .filter(Boolean);
-                if (pendentesNomes.length > 0) listaMissoes = "\n\nMissões: " + pendentesNomes.join(', ');
-            }
+    window.OneSignalDeferred.push(function(OneSignal) {
+        const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+        const tTotal = user.dailyTaskIds || [];
+        const tFeitas = user.completedTodayIds || [];
+        const pendentes = tTotal.length - tFeitas.length;
+        
+        let lista = "";
+        if (typeof currentSetup !== 'undefined' && currentSetup.habitos) {
+            const all = Object.values(currentSetup.habitos).flat();
+            const nomes = tTotal.filter(id => !tFeitas.includes(id)).map(id => all.find(h => h.id === id)?.task).filter(Boolean);
+            if (nomes.length > 0) lista = "\n\nMissões: " + nomes.join(', ');
+        }
 
-            const hora = new Date().getHours();
-            let marmita = "";
-            if (hora >= 5 && hora < 12) marmita = `${user.nome}, ${voice.morning}${listaMissoes}`;
-            else if (hora >= 12 && hora < 18) marmita = `${user.nome}, ${voice.afternoon}${listaMissoes || "\n\nTudo em ordem."}`;
-            else marmita = (pendentesCount === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome) + listaMissoes;
+        const h = new Date().getHours();
+        let m = "";
+        if (h >= 5 && h < 12) m = `${user.nome}, ${voice.morning}${lista}`;
+        else if (h >= 12 && h < 18) m = `${user.nome}, ${voice.afternoon}${lista || "\n\nTudo ok."}`;
+        else m = (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome) + lista;
 
-            await OneSignal.User.addTags({ "overall": String(marmita), "uid_vinculado": String(user.uid) });
-            console.log(`✅ OneSignal Sincronizado: ${user.uid}`);
-        } catch (err) { console.error("Erro OneSignal Tags:", err); }
+        // Envio sem await para não travar em caso de erro de rede
+        OneSignal.User.addTags({ "overall": String(m), "uid": String(user.uid) });
     });
 }
 
-window.ativarNotificacoesManual = async () => {
-    console.log("🔄 Iniciando Vínculo de Identidade...");
-    const rawData = localStorage.getItem('mindset_data');
-    if (!rawData) return;
-    const user = JSON.parse(rawData);
+window.ativarNotificacoesManual = () => {
+    console.log("🔄 Iniciando Vínculo...");
+    const raw = localStorage.getItem('mindset_data');
+    if (!raw) return;
+    const user = JSON.parse(raw);
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-            // Login direto sem logout prévio para evitar erro vazio no Firefox
-            await OneSignal.login(user.uid);
-            
-            // Pequeno delay para processamento interno
-            await new Promise(r => setTimeout(r, 500));
+    window.OneSignalDeferred.push(function(OneSignal) {
+        // 1. Tenta o login (sem await para evitar o travamento da Promise)
+        OneSignal.login(user.uid).catch(() => {});
 
-            try {
-                await OneSignal.Notifications.requestPermission();
-            } catch (e) {
-                console.warn("Permissão já solicitada ou bloqueada.");
-            }
-
-            const extId = await OneSignal.User.getExternalId();
-            if (extId !== user.uid) await OneSignal.login(user.uid);
-
-            await sendOneSignalTags(user);
-            if (window.showModal) window.showModal("SISTEMA", "Vínculo de identidade concluído.");
-        } catch (e) {
-            console.error("❌ Falha na ativação:", e);
-        }
+        // 2. Solicita permissão com um pequeno delay para a rede estabilizar
+        setTimeout(() => {
+            OneSignal.Notifications.requestPermission().then(() => {
+                sendOneSignalTags(user);
+                if (window.showModal) window.showModal("SISTEMA", "Vínculo solicitado.");
+            }).catch(() => {
+                console.warn("Permissão ignorada pelo browser.");
+            });
+        }, 1000);
     });
 };
 
