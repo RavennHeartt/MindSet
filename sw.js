@@ -1,6 +1,3 @@
-importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
-
-// O resto do seu código de cache (o que já estava no sw.js) vem abaixo...
 const CACHE_NAME = 'mindset-v1';
 const ASSETS_TO_CACHE = [
     './',
