@@ -1,12 +1,13 @@
 /**
- * MINDSET - CORE ENGINE v3.4
- * HUD, Calendário, Sync Cloud & OneSignal Integration
+ * MINDSET - CORE ENGINE v3.6
+ * HUD, Calendário, Sync Cloud & OneSignal Integration (com Debounce)
  */
 
 // 1. ESTADO GLOBAL
 let userData = null;
 let currentSetup = null;
 let currentViewDate = new Date();
+let debounceTimer; // Trava de segurança para o OneSignal
 
 // 2. CARREGAMENTO E SEGURANÇA
 function loadUserData() {
@@ -66,10 +67,15 @@ window.completeTask = (id, xp) => {
     renderTasks(); 
     syncToFirebase();
     
-    // Atualiza OneSignal em tempo real ao marcar tarefa
-    if (typeof sendOneSignalTags === "function") {
-        sendOneSignalTags(userData);
-    }
+    // --- LÓGICA DE DEBOUNCE (NOVO) ---
+    // Aguarda 2 segundos de inatividade antes de enviar as tags para evitar erro de colisão
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        if (typeof sendOneSignalTags === "function") {
+            console.log("🚀 Sincronizando estado consolidado com OneSignal...");
+            sendOneSignalTags(userData);
+        }
+    }, 2000);
 };
 
 function handleLeveling() {
@@ -79,7 +85,7 @@ function handleLeveling() {
         userData.level++;
         window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
         
-        // Sincroniza novo nível com OneSignal
+        // Sincroniza novo nível
         if (typeof sendOneSignalTags === "function") {
             sendOneSignalTags(userData);
         }
@@ -294,14 +300,12 @@ function forceDateSync() {
                 ids: [...userData.dailyTaskIds],
                 done: [...userData.completedTodayIds]
             };
-            // Penalidade por não cumprir as 3 missões
             if (userData.tasksDoneToday < 3) {
                 userData.streak = 0;
                 userData.xp = Math.max(0, userData.xp - 500);
             }
         }
 
-        // Promove tarefas de amanhã para hoje ou seleciona novas
         if (userData.tomorrowTasks && userData.tomorrowTasks.length === 3) {
             userData.dailyTaskIds = userData.tomorrowTasks;
         } else {
@@ -316,7 +320,6 @@ function forceDateSync() {
         
         save();
 
-        // Sincroniza novas tarefas com OneSignal imediatamente
         if (typeof sendOneSignalTags === "function") {
             sendOneSignalTags(userData);
         }
@@ -328,7 +331,6 @@ window.onload = () => {
     loadUserData();
     if (!userData) return;
 
-    // Aguarda carregamento dos arquivos de setup
     setTimeout(() => {
         const setupLib = {
             'patriarca': typeof patriarcaData !== 'undefined' ? patriarcaData : null,
@@ -358,7 +360,6 @@ window.onload = () => {
             renderTasks();
             syncToFirebase();
 
-            // Sincronização inicial de tags ao entrar no App
             if (typeof sendOneSignalTags === "function") {
                 sendOneSignalTags(userData);
             }
