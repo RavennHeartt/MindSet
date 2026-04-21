@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v6.5
- * Estratégia: Marmitas Temporais + Sincronia de ID Real
+ * MINDSET - NOTIFICATIONS ENGINE v6.8
+ * Foco: Estabilidade total, vínculo via UID e correção de ReferenceError
  */
 
 const mindsetVoices = {
@@ -10,7 +10,7 @@ const mindsetVoices = {
     'dama': { morning: "sua elegância se manifesta através da sua autodisciplina.", afternoon: "mantenha a postura e a influência através da execução constante.", night: "Manteve a classe e o dever?", night_win: "Vitória e classe, $. Você dominou o dia com maestria.", night_loss: "A procrastinação ofuscou sua luz hoje, $. Retome o brilho." },
     'devoto': { morning: "consagre cada hora deste dia; a disciplina é sua oração.", afternoon: "mantenha a constância no bem e no dever, sem desviar o olhar.", night: "Sua oração em forma de dever foi feita?", night_win: "Espírito fortalecido e dever cumprido, $. Vá em paz.", night_loss: "Você cedeu às tentações da preguiça, $. Sua base fraquejou." },
     'devota': { morning: "sua força interior é refletida na ordem do seu dia.", afternoon: "persista no seu propósito com fé e dedicação total.", night: "Coração em paz com o dever?", night_win: "Coração em paz e missões cumpridas, $. Você venceu.", night_loss: "A desordem afastou sua clareza hoje, $. Reze e recomece." },
-    'ceo_ele': { morning: "o mercado não perdoa os lentos. Inicie a operação.", afternoon: "performance é o único KPI que importa agora. Execute.", night: "KPIs atingidos ou prejuízo?", night_win: "Alta performance confirmada, $. Lucro mental máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
+    'ceo_ele': { morning: "o mercado não perdoa os lentos. Inicie a operação.", afternoon: "performance é o único KPI que importa agora. Execute.", night: "KPIs atingidos ou prejuízo?", night_win: "Alta performance confirmed, $. Lucro mental máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
     'ceo_ela': { morning: "liderança não é cargo, é ação. Comande seu destino.", afternoon: "estratégia sem execução é alucinação. Foque no que importa.", night: "Gestão concluída com sucesso?", night_win: "Visão estratégica concluída, $. Você liderou com sucesso.", night_loss: "Déficit de produtividade, $. Sua gestão foi falha hoje." },
     'militar_ele': { morning: "disciplina é liberdade. Assuma o seu posto.", afternoon: "mantenha o padrão e a cadência. O objetivo está à vista.", night: "Missão cumprida ou falha?", night_win: "Missão cumprida, $. Padrão mantido. Descanso autorizado.", night_loss: "Fracasso operacional por negligência, $. Durma com isso." },
     'militar_ela': { morning: "ordem e comando. Estabeleça as prioridades agora.", afternoon: "o terreno é hostil para os indisciplinados. Mantenha o foco.", night: "Relatório de objetivos: completo?", night_win: "Objetivos atingidos, $. Comando respeitado. Excelente.", night_loss: "Indisciplina detectada, $. Você quebrou o padrão hoje." },
@@ -24,7 +24,7 @@ const mindsetVoices = {
 };
 
 /**
- * Sincroniza a Marmita Temporal com OneSignal usando o UID do Firebase
+ * Envia as tags para o OneSignal usando o UID do Firebase como External ID
  */
 async function sendOneSignalTags(user) {
     if (!user || !user.uid) return;
@@ -32,7 +32,7 @@ async function sendOneSignalTags(user) {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            // ELOS DE LIGAÇÃO: Usamos o UID do Firebase para o OneSignal e o Robô se entenderem
+            // Vincula o usuário pelo UID do Firebase
             await OneSignal.login(user.uid);
 
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
@@ -40,7 +40,6 @@ async function sendOneSignalTags(user) {
             const tarefasFeitas = user.completedTodayIds || [];
             const pendentesCount = tarefasTotal.length - tarefasFeitas.length;
             
-            // Monta lista de nomes das tarefas pendentes
             let listaMissoes = "";
             if (typeof currentSetup !== 'undefined' && currentSetup.habitos) {
                 const allHabits = Object.values(currentSetup.habitos).flat();
@@ -69,20 +68,23 @@ async function sendOneSignalTags(user) {
 
             await OneSignal.User.addTags({
                 "overall": String(marmita),
+                "pendentes": String(pendentesCount),
                 "setup": String(user.setup || 'patriarca')
             });
 
-            console.log(`✅ Sincronizado para ID: ${user.uid}`);
+            console.log(`✅ OneSignal Sincronizado: ${user.uid}`);
         } catch (err) {
-            console.warn("Erro ao sincronizar tags OneSignal.");
+            console.error("Erro OneSignal Tags:", err);
         }
     });
 }
 
 /**
- * RESET TOTAL: Garante o vínculo do ID
+ * FUNÇÃO DE REATIVAÇÃO MANUAL (O botão do menu chama esta função)
  */
-window.resetarNotificacoesTotal = async () => {
+window.ativarNotificacoesManual = async () => {
+    console.log("🔄 Iniciando Recompilação de Alertas...");
+    
     const rawData = localStorage.getItem('mindset_data');
     if (!rawData) return;
     const user = JSON.parse(rawData);
@@ -90,12 +92,25 @@ window.resetarNotificacoesTotal = async () => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            await OneSignal.User.PushSubscription.optOut();
-            await OneSignal.login(user.uid); // Garante o login com UID
+            // 1. Limpa sessão anterior
+            await OneSignal.logout();
+            // 2. Faz login com o UID atual
+            await OneSignal.login(user.uid);
+            // 3. Garante inscrição
             await OneSignal.Notifications.requestPermission();
-            await OneSignal.User.PushSubscription.optIn();
-            sendOneSignalTags(user);
-            window.showModal("SISTEMA", "Alertas sincronizados com sucesso.");
-        } catch (e) { console.error(e); }
+            // 4. Força atualização de tags
+            await sendOneSignalTags(user);
+            
+            if (window.showModal) {
+                window.showModal("SISTEMA", "Alertas sincronizados com sucesso!");
+            }
+        } catch (e) {
+            console.error("Falha ao reativar notificações:", e);
+        }
     });
 };
+
+/**
+ * ALIAS PARA RESET TOTAL (Caso algum botão antigo ainda use este nome)
+ */
+window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
