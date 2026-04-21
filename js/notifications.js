@@ -1,54 +1,132 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v5.0
- * Estratégia: Marmita Dinâmica com Listagem de Missões (Bullets)
+ * MINDSET - NOTIFICATIONS ENGINE v6.0
+ * Estratégia: Marmitas Temporais (Manhã, Tarde, Noite)
  * Limite: 2 Tags (overall, pendentes)
  */
 
 const mindsetVoices = {
-    'patriarca': { morning: "A fundação da linhagem exige ordem.", afternoon: "Um líder não deixa tarefas inacabadas.", night_win: "A linhagem está segura. Bom descanso.", night_loss: "Sua falta de foco enfraquece sua autoridade." },
-    'matriarca': { morning: "Sabedoria é a base. Organize seu império.", afternoon: "Equilíbrio exige conclusão. Não se disperse.", night_win: "Gestão impecável. Mente em paz.", night_loss: "A desordem de hoje cobrará seu preço." },
-    'cavalheiro': { morning: "A honra começa no cumprimento do dever.", afternoon: "Postura, senhor. Suas obrigações aguardam.", night_win: "Um dia de conduta exemplar.", night_loss: "A negligência é uma mancha na reputação." },
-    'dama': { morning: "Elegância é eficiência. Domine seu dia.", afternoon: "Sua influência cresce com metas batidas.", night_win: "Postura e vitória. Um dia perfeito.", night_loss: "A falta de disciplina ofusca sua elegância." },
-    'devoto': { morning: "Consagre suas horas. Disciplina é oração.", afternoon: "Não fraqueje. A constância é a prova.", night_win: "Espírito fortalecido. Vitória alcançada.", night_loss: "A procrastinação é uma armadilha." },
-    'devota': { morning: "Fortaleça sua base através da ação.", afternoon: "Mantenha o foco. Sua luz depende da ordem.", night_win: "Coração em paz e missões cumpridas.", night_loss: "A desordem afasta a clareza." },
-    'ceo_ele': { morning: "Novo dia, novos lucros. Foco na execução.", afternoon: "KPIs em baixa. Termine suas missões.", night_win: "Alta performance confirmada.", night_loss: "Resultados inaceitáveis. Reavalie." },
-    'ceo_ela': { morning: "Liderança é ação. Execute sua visão.", afternoon: "Revisão de metas: Pendências matam o crescimento.", night_win: "Visão estratégica concluída.", night_loss: "Déficit de produtividade. Foco total." },
-    'militar_ele': { morning: "09:00h. Disciplina é liberdade.", afternoon: "Soldado, o inimigo não descansa! Termine o serviço.", night_win: "Missão cumprida. Descanso autorizado.", night_loss: "Fracasso operacional. Negligência detectada." },
-    'militar_ela': { morning: "Ordem e comando. Inicie as operações.", afternoon: "Sua tropa está dispersa. Recupere o controle!", night_win: "Objetivos atingidos. Padrão mantido.", night_loss: "Indisciplina detectada. Retome o rigor." },
-    'investidor': { morning: "O tempo é seu ativo. Invista-o bem.", afternoon: "Análise de portfólio: Você tem débitos.", night_win: "Lucro máximo! Dia encerrado em alta.", night_loss: "Prejuízo total. Desperdiçou capital." },
-    'investidora': { morning: "Multiplique seus resultados pelo foco.", afternoon: "Atenção aos dividendos: Conclua as tarefas.", night_win: "Patrimônio mental em crescimento.", night_loss: "Dia de perdas. O tempo não volta." },
-    'zen': { morning: "Presença e calma. O agora é a tarefa.", afternoon: "Respire. Volte ao centro e termine.", night_win: "Mente límpida. O dia fluiu em harmonia.", night_loss: "O ruído venceu hoje. Busque silêncio." },
-    'estrategista': { morning: "Cada movimento conta. Planeje e execute.", afternoon: "Cada movimento conta. Planeje e execute!", night_win: "Xeque-mate. Perfeição.", night_loss: "Falha tática. Foi ingênuo com seu tempo." },
-    'atleta_ele': { morning: "Performance máxima. Supere limites.", afternoon: "O treino só acaba com a meta batida.", night_win: "Recorde pessoal. Imparável.", night_loss: "Desistiu antes da hora. Recupere amanhã." },
-    'atleta_ela': { morning: "Foco, força e execução. Vá além.", afternoon: "Sem atalhos. Vitória exige suor.", night_win: "Performance de elite. Meta esmagada.", night_loss: "Falta de fôlego. Mantenha o ritmo." },
-    'minimalista': { morning: "Menos distração, mais foco no essencial.", afternoon: "Elimine o que sobra, termine o que importa.", night_win: "Clareza absoluta. Leve e vitorioso.", night_loss: "Perdeu-se no excesso. Esqueceu o essencial." }
+    'patriarca': { 
+        morning: "a fundação da sua linhagem hoje depende da sua ordem.", 
+        afternoon: "um líder mantém a visão clara enquanto executa o necessário.", 
+        night_win: "Dever cumprido, $. A linhagem está segura sob sua guarda.", 
+        night_loss: "Você falhou com sua autoridade hoje, $. A desordem enfraquece seu legado." 
+    },
+    'matriarca': { 
+        morning: "sua sabedoria é o que mantém o império de pé.", 
+        afternoon: "o equilíbrio exige atenção constante aos detalhes que importam.", 
+        night_win: "Gestão impecável, $. Sua casa e mente estão em harmonia.", 
+        night_loss: "A negligência de hoje cobrará seu preço amanhã, $." 
+    },
+    'cavalheiro': { 
+        morning: "a honra do seu nome começa no primeiro compromisso do dia.", 
+        afternoon: "a etiqueta exige que suas obrigações sejam tratadas com prioridade.", 
+        night_win: "Um dia de conduta exemplar, $. Você honrou sua palavra.", 
+        night_loss: "Sua falta de disciplina manchou sua reputação hoje, $." 
+    },
+    'dama': { 
+        morning: "sua elegância se manifesta através da sua autodisciplina.", 
+        afternoon: "mantenha a postura e a influência através da execução constante.", 
+        night_win: "Vitória e classe, $. Você dominou o dia com maestria.", 
+        night_loss: "A procrastinação ofuscou sua luz hoje, $. Retome o brilho." 
+    },
+    'devoto': { 
+        morning: "consagre cada hora deste dia; a disciplina é sua oração.", 
+        afternoon: "mantenha a constância no bem e no dever, sem desviar o olhar.", 
+        night_win: "Espírito fortalecido e dever cumprido, $. Vá em paz.", 
+        night_loss: "Você cedeu às tentações da preguiça, $. Sua base fraquejou." 
+    },
+    'devota': { 
+        morning: "sua força interior é refletida na ordem do seu dia.", 
+        afternoon: "persista no seu propósito com fé e dedicação total.", 
+        night_win: "Coração em paz e missões cumpridas, $. Você venceu.", 
+        night_loss: "A desordem afastou sua clareza hoje, $. Reze e recomece." 
+    },
+    'ceo_ele': { 
+        morning: "o mercado não perdoa os lentos. Inicie a operação.", 
+        afternoon: "performance é o único KPI que importa agora. Execute.", 
+        night_win: "Alta performance confirmada, $. Lucro mental máximo.", 
+        night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." 
+    },
+    'ceo_ela': { 
+        morning: "liderança não é cargo, é ação. Comande seu destino.", 
+        afternoon: "estratégia sem execução é alucinação. Foque no que importa.", 
+        night_win: "Visão estratégica concluída, $. Você liderou com sucesso.", 
+        night_loss: "Déficit de produtividade, $. Sua gestão foi falha hoje." 
+    },
+    'militar_ele': { 
+        morning: "disciplina é liberdade. Assuma o seu posto.", 
+        afternoon: "mantenha o padrão e a cadência. O objetivo está à vista.", 
+        night_win: "Missão cumprida, $. Padrão mantido. Descanso autorizado.", 
+        night_loss: "Fracasso operacional por negligência, $. Durma com isso." 
+    },
+    'militar_ela': { 
+        morning: "ordem e comando. Estabeleça as prioridades agora.", 
+        afternoon: "o terreno é hostil para os indisciplinados. Mantenha o foco.", 
+        night_win: "Objetivos atingidos, $. Comando respeitado. Excelente.", 
+        night_loss: "Indisciplina detectada, $. Você quebrou o padrão hoje." 
+    },
+    'investidor': { 
+        morning: "seu tempo é o ativo mais escasso. Aloque-o com precisão.", 
+        afternoon: "não desperdice capital intelectual com distrações baratas.", 
+        night_win: "Patrimônio mental em alta, $. Ótimo fechamento de dia.", 
+        night_loss: "Você queimou seu tempo em futilidades, $. Prejuízo total." 
+    },
+    'investidora': { 
+        morning: "multiplique seus resultados através de uma rotina blindada.", 
+        afternoon: "foco no longo prazo exige execução impecável no agora.", 
+        night_win: "Dividendos de disciplina recebidos, $. Parabéns.", 
+        night_loss: "Saldo negativo de esforço, $. Seu dia foi um passivo." 
+    },
+    'zen': { 
+        morning: "a paz que você busca está na tarefa que você evita.", 
+        afternoon: "respire, volte ao centro e flua com o que deve ser feito.", 
+        night_win: "Mente límpida e harmonia alcançada, $. O dia foi luz.", 
+        night_loss: "O ruído externo venceu seu silêncio, $. Você se perdeu." 
+    },
+    'estrategista': { 
+        morning: "cada movimento hoje é uma peça para o seu xeque-mate.", 
+        afternoon: "analise, adapte e execute. O plano não se cumpre sozinho.", 
+        night_win: "Xeque-mate, $. O tabuleiro do dia foi dominado.", 
+        night_loss: "Você foi joguete das circunstâncias hoje, $. Falha tática." 
+    },
+    'atleta_ele': { 
+        morning: "a vitória de hoje é construída na primeira hora de suor.", 
+        afternoon: "o cansaço é psicológico; a meta é real. Continue avançando.", 
+        night_win: "Performance de elite, $. Recorde pessoal batido.", 
+        night_loss: "Você desistiu antes da linha de chegada, $. Vergonhoso." 
+    },
+    'atleta_ela': { 
+        morning: "performance máxima exige disciplina inabalável.", 
+        afternoon: "não negocie com sua mente; cumpra o cronograma.", 
+        night_win: "Meta esmagada, $. Você provou sua força mais uma vez.", 
+        night_loss: "Faltou fôlego e vontade, $. Você foi medíocre hoje." 
+    },
+    'minimalista': { 
+        morning: "ignore o ruído e foque apenas no que é essencial.", 
+        afternoon: "simplicidade é o último grau da sofisticação. Execute.", 
+        night_win: "Clareza absoluta e dia leve, $. Essencial cumprido.", 
+        night_loss: "Você se perdeu no excesso e no nada, $. Dia desperdiçado." 
+    }
 };
 
 /**
- * Varre o setup atual e monta a lista de texto das missões pendentes
+ * Monta a lista visual de missões pendentes
  */
 function getPendingTasksList(user) {
-    // currentSetup vem do app.js (global)
-    if (!currentSetup || !user.dailyTaskIds) return "";
-    
+    if (typeof currentSetup === 'undefined' || !currentSetup || !user.dailyTaskIds) return "";
     const allHabits = Object.values(currentSetup.habitos).flat();
     const pendentesIds = user.dailyTaskIds.filter(id => !user.completedTodayIds.includes(id));
-    
     if (pendentesIds.length === 0) return "";
-
-    let listaTexto = "\n\nPendências:";
+    let listaTexto = "\n\nMissões:";
     pendentesIds.forEach(id => {
         const tarefa = allHabits.find(h => h.id === id);
-        if (tarefa) {
-            listaTexto += `\n• ${tarefa.task}`;
-        }
+        if (tarefa) listaTexto += `\n• ${tarefa.task}`;
     });
-    
     return listaTexto;
 }
 
 /**
- * Envia a Marmita Consolidada para o OneSignal
+ * Sincroniza a Marmita Temporal com OneSignal
  */
 async function sendOneSignalTags(user) {
     if (!user || !user.nome) return;
@@ -61,37 +139,43 @@ async function sendOneSignalTags(user) {
 
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
             const pendentesCount = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
-            const listaPendencias = getPendingTasksList(user);
+            const listaMissoes = getPendingTasksList(user);
+            const quote = user.dailyQuote || "Foco no dever.";
 
             const hora = new Date().getHours();
             let marmita = "";
 
-            // Lógica de Montagem da Marmita por Horário
-            if (hora < 12) {
-                marmita = `${user.nome}, ${voice.morning}`;
-            } else if (hora < 18) {
-                // Tarde: Nome + Frase + Lista de Balas
-                marmita = `${user.nome}, ${voice.afternoon}${listaPendencias}`;
-            } else {
-                // Noite: Se venceu, só parabéns. Se perdeu, mostra o que faltou.
-                marmita = (pendentesCount === 0) ? voice.night_win : `${voice.night_loss}${listaPendencias}`;
+            // JANELA 1: MANHÃ (06:00 às 09:59)
+            if (hora >= 6 && hora < 10) {
+                marmita = `${user.nome}, ${voice.morning}\n\n"${quote}"${listaMissoes}`;
+            } 
+            // JANELA 2: TARDE (10:00 às 14:59)
+            else if (hora >= 10 && hora < 15) {
+                marmita = `${user.nome}, ${voice.afternoon}${listaMissoes || "\n\nTudo em ordem até aqui."}`;
+            } 
+            // JANELA 3: NOITE (15:00 às 22:59)
+            else {
+                if (pendentesCount === 0) {
+                    marmita = voice.night_win.replace("$", user.nome);
+                } else {
+                    marmita = voice.night_loss.replace("$", user.nome) + listaMissoes;
+                }
             }
 
-            // Sincroniza apenas 2 tags (Plano Gratuito)
             await OneSignal.User.addTags({
                 "overall": String(marmita),
                 "pendentes": String(pendentesCount)
             });
 
-            console.log("✅ Marmita v5.0: Sincronizada com lista de missões.");
+            console.log(`✅ Marmita v6.0: Sincronizada janela das ${hora}h.`);
         } catch (err) {
-            console.warn("OneSignal: Erro ao sincronizar marmita.");
+            console.warn("OneSignal: Erro de Tags.");
         }
     });
 }
 
 /**
- * Reset de Alertas (Hard Reset)
+ * HARD RESET: Força limpeza e re-inscrição
  */
 window.resetarNotificacoesTotal = async () => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -99,7 +183,6 @@ window.resetarNotificacoesTotal = async () => {
         try {
             await OneSignal.User.PushSubscription.optOut();
             await OneSignal.Notifications.requestPermission();
-            
             const rawData = localStorage.getItem('mindset_data');
             if (rawData) {
                 const user = JSON.parse(rawData);
@@ -107,16 +190,14 @@ window.resetarNotificacoesTotal = async () => {
                 await OneSignal.login(cleanId);
                 await OneSignal.User.PushSubscription.optIn();
                 sendOneSignalTags(user);
-                window.showModal("SISTEMA", "Protocolo de Alertas reiniciado.");
+                window.showModal("SISTEMA", "Alertas reiniciados com sucesso.");
             }
-        } catch (e) {
-            console.error("Erro Reset Alertas:", e);
-        }
+        } catch (e) { console.error(e); }
     });
 };
 
 /**
- * Loop Local (Backup)
+ * BACKUP LOCAL (App aberto)
  */
 function checkNotificationSchedule() {
     const rawData = localStorage.getItem('mindset_data');
@@ -127,7 +208,10 @@ function checkNotificationSchedule() {
     if (m !== 0) return; 
 
     const voice = mindsetVoices[localData.setup] || mindsetVoices['patriarca'];
-    let msg = (h === 9) ? voice.morning : (h === 14) ? voice.afternoon : (h === 22) ? ((localData.completedTodayIds.length >= 3) ? voice.night_win : voice.night_loss) : "";
+    let msg = "";
+    if (h === 9) msg = voice.morning;
+    else if (h === 14) msg = voice.afternoon;
+    else if (h === 22) msg = (localData.completedTodayIds.length >= 3) ? voice.night_win.replace("$", localData.nome) : voice.night_loss.replace("$", localData.nome);
 
     if (msg && Notification.permission === "granted") {
         new Notification("MINDSET", { body: msg, icon: 'assets/icone-ios.png' });
