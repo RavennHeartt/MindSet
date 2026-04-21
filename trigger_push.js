@@ -4,14 +4,15 @@ const app_id = process.env.ONESIGNAL_APP_ID;
 const rest_key = process.env.ONESIGNAL_REST_KEY;
 
 async function sendPush() {
-    console.log("Iniciando disparo para App ID:", app_id);
-    
     try {
         const response = await axios.post(
             "https://onesignal.com/api/v1/notifications",
             {
                 app_id: app_id,
-                included_segments: ["Total Subscriptions"], // "Total" costuma ser mais preciso que "All" em algumas versões
+                // Mudamos de segments para filters para pegar qualquer um que tenha a tag 'overall'
+                filters: [
+                    {"field": "tag", "key": "overall", "relation": "exists"}
+                ],
                 contents: { "pt": "{{ overall }}", "en": "{{ overall }}" },
                 headings: { "pt": "MindSet", "en": "MindSet" }
             },
