@@ -99,4 +99,4 @@ function checkNotificationSchedule() {
     }
 }
 
-setInterval(checkNotificationSchedule, 60000);
+//setInterval(checkNotificationSchedule, 60000);
