@@ -2,24 +2,23 @@ name: MindSet Cron Push
 
 on:
   schedule:
-    # Horários em UTC (Brasília é -3h)
     # 12:00 UTC = 09:00 BRT
     # 17:00 UTC = 14:00 BRT
     # 01:00 UTC = 22:00 BRT
     - cron: '0 12 * * *'
     - cron: '0 17 * * *'
     - cron: '0 1 * * *'
-  workflow_dispatch: # Permite que você teste clicando em um botão no GitHub
+  workflow_dispatch: # Permite o botão de teste manual
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4 # Atualizado para v4
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4 # Atualizado para v4
         with:
-          node-version: '18'
+          node-version: '24' # Usando a versão recomendada pelo erro
       - name: Install Dependencies
         run: npm install axios
       - name: Run Trigger Script
