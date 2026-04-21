@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v8.0
- * Foco: Vínculo Manual via API REST (Anti-Bloqueio Firefox)
+ * MINDSET - NOTIFICATIONS ENGINE v9.0
+ * Foco: Limpeza Bruta de Cache + Reset de Service Worker + Vínculo Force
  */
 
 const mindsetVoices = {
@@ -24,60 +24,77 @@ const mindsetVoices = {
 };
 
 /**
- * Função de tags - Agora tenta forçar o vínculo por baixo dos panos
+ * Envia as tags de sincronia
  */
 function sendOneSignalTags(user) {
     if (!user || !user.uid) return;
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(function(OneSignal) {
-        // Força login novamente
-        OneSignal.login(user.uid);
-        
         const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
         const pendentesCount = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
         const hora = new Date().getHours();
+        
         let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
                       (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                       (pendentesCount === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-        OneSignal.User.addTags({ "overall": String(marmita), "uid": String(user.uid) });
-        console.log("📤 Tags enviadas via SDK.");
+        OneSignal.User.addTags({ 
+            "overall": String(marmita), 
+            "uid_vinculado": String(user.uid),
+            "last_sync": new Date().toISOString()
+        });
+        console.log("✅ Tags sincronizadas para UID:", user.uid);
     });
 }
 
 /**
- * RECOMPILAR - A FORÇA BRUTA
+ * LIMPEZA BRUTA + REATIVAÇÃO
  */
-window.ativarNotificacoesManual = () => {
-    console.log("🔄 Tentando Vínculo Forçado...");
+window.ativarNotificacoesManual = async () => {
+    console.log("🧹 Iniciando Limpeza Profunda...");
+    
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-            // 1. Login no SDK
+    try {
+        // 1. Limpar Service Workers (Causa comum de cache de ID antigo)
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                await registration.unregister();
+                console.log("🗑️ Service Worker removido.");
+            }
+        }
+
+        // 2. Limpar Bancos de Dados do OneSignal (IndexedDB)
+        const dbs = ['OneSignalSDK', 'OneSignalSDK_IDB'];
+        dbs.forEach(dbName => {
+            const req = indexedDB.deleteDatabase(dbName);
+            req.onsuccess = () => console.log(`🗑️ DB ${dbName} deletado.`);
+        });
+
+        // 3. Reiniciar OneSignal
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async function(OneSignal) {
+            console.log("🚀 Reiniciando OneSignal com UID:", user.uid);
+            
+            // Força o deslogue e login para carimbar o External ID
+            await OneSignal.logout(); 
             await OneSignal.login(user.uid);
             
-            // 2. Pedir permissão
+            // Solicita permissão do zero
             await OneSignal.Notifications.requestPermission();
             
-            // 3. Pegar o OneSignal ID interno (o player id do navegador)
-            const onesignalId = OneSignal.User.onesignalId;
+            // Sincroniza
+            sendOneSignalTags(user);
             
-            if (onesignalId) {
-                console.log("📍 ID Interno encontrado:", onesignalId);
-                // Se o SDK falhar em vincular, o nosso Robô do GitHub agora tem 
-                // um "alvo" para caçar. Mas vamos tentar enviar as tags agora.
-                sendOneSignalTags(user);
-            }
+            if (window.showModal) window.showModal("SISTEMA", "Cache limpo e alertas reativados com sucesso!");
+        });
 
-            if (window.showModal) window.showModal("SISTEMA", "Vínculo solicitado com sucesso.");
-        } catch (e) {
-            console.error("Erro no processo:", e);
-        }
-    });
+    } catch (err) {
+        console.error("Erro na limpeza bruta:", err);
+    }
 };
 
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
