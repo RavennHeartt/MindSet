@@ -1,28 +1,45 @@
-name: MindSet Cron Push
+name: MindSet - Sincronia e Push Horário
 
 on:
   schedule:
-    # 12:00 UTC = 09:00 BRT
-    # 17:00 UTC = 14:00 BRT
-    # 01:00 UTC = 22:00 BRT
+    # O robô "acorda" a cada hora (minuto 0) para sincronizar tags do Firebase
+    - cron: '0 * * * *'
+    
+    # Horários específicos de Push (Brasília -3h):
+    # 12:00 UTC = 09:00 BRT (Manhã)
+    # 17:00 UTC = 14:00 BRT (Tarde)
+    # 01:00 UTC = 22:00 BRT (Noite)
     - cron: '0 12 * * *'
     - cron: '0 17 * * *'
     - cron: '0 1 * * *'
-  workflow_dispatch: # Permite o botão de teste manual
+    
+  workflow_dispatch: # Permite rodar manualmente para testes
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Atualizado para v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4 # Atualizado para v4
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '24' # Usando a versão recomendada pelo erro
-      - name: Install Dependencies
-        run: npm install axios
-      - name: Run Trigger Script
+          node-version: '20' # Versão estável e recomendada
+
+      - name: Instalar Dependências
+        run: npm install axios firebase-admin
+
+      - name: Executar Sincronia e Disparo
         env:
+          # Segredos que você configurou no GitHub
           ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
           ONESIGNAL_REST_KEY: ${{ secrets.ONESIGNAL_REST_KEY }}
-        run: node trigger_push.js
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          # Primeiro atualiza as tags lendo o Firebase
+          node update_tags.js
+          
+          # Se for um dos horários de Push, envia a notificação
+          # (O script trigger_push.js agora só cuida do envio)
+          node trigger_push.js
