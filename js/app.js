@@ -1,6 +1,6 @@
 /**
- * MINDSET - CORE ENGINE v3.3 (FINAL STABLE)
- * HUD, Calendário com Histórico, Tomorrow Tasks, Apoio & Cloud Sync
+ * MINDSET - CORE ENGINE v3.4
+ * HUD, Calendário, Sync Cloud & OneSignal Integration
  */
 
 // 1. ESTADO GLOBAL
@@ -14,7 +14,7 @@ function loadUserData() {
         const rawData = localStorage.getItem('mindset_data');
         if (rawData) {
             userData = JSON.parse(rawData);
-            // Sanitização e Garantia de Campos
+            // Sanitização de campos obrigatórios
             userData.level = Math.max(1, userData.level || 1);
             userData.xp = userData.xp || 0;
             userData.streak = userData.streak || 0;
@@ -38,6 +38,7 @@ function loadUserData() {
 // --- 3. MOTOR DE PROGRESSÃO ---
 window.completeTask = (id, xp) => {
     const isAlreadyDone = userData.completedTodayIds.includes(id);
+    
     if (!isAlreadyDone) {
         userData.completedTodayIds.push(id);
         userData.tasksDoneToday++;
@@ -58,18 +59,34 @@ window.completeTask = (id, xp) => {
         userData.tasksDoneToday--;
         userData.xp = Math.max(0, userData.xp - xp);
     }
-    handleLeveling(); save(); updateUI(); renderTasks(); syncToFirebase();
+
+    handleLeveling(); 
+    save(); 
+    updateUI(); 
+    renderTasks(); 
+    syncToFirebase();
+    
+    // Atualiza OneSignal em tempo real ao marcar tarefa
+    if (typeof sendOneSignalTags === "function") {
+        sendOneSignalTags(userData);
+    }
 };
 
 function handleLeveling() {
     let xpTarget = 1000 + (userData.level * 1000);
     if (userData.xp >= xpTarget && userData.level < 10) {
-        userData.xp -= xpTarget; userData.level++;
+        userData.xp -= xpTarget; 
+        userData.level++;
         window.showModal("EVOLUÇÃO", `Nova Patente: ${currentSetup.ranks[userData.level-1]}`);
+        
+        // Sincroniza novo nível com OneSignal
+        if (typeof sendOneSignalTags === "function") {
+            sendOneSignalTags(userData);
+        }
     }
 }
 
-// --- 4. CALENDÁRIO & HISTÓRICO (DETALHAMENTO TOTAL) ---
+// --- 4. CALENDÁRIO & HISTÓRICO ---
 window.changeMonth = (dir) => {
     currentViewDate.setMonth(currentViewDate.getMonth() + dir);
     renderCalendar();
@@ -128,24 +145,19 @@ function showDayDetail(dateStr) {
     const clicado = new Date(dateStr);
     clicado.setHours(0,0,0,0);
 
-    // 1. SE FOR HOJE
     if (dateStr === userData.lastDate) {
         userData.dailyTaskIds.forEach(id => {
             const task = allHabits.find(h => h.id === id);
             const done = userData.completedTodayIds.includes(id);
             detailContainer.innerHTML += renderHistoryItem(task.task, done ? 'concluido' : 'pendente');
         });
-    } 
-    // 2. SE FOR AMANHÃ (TOMORROW TASKS)
-    else if (clicado.getTime() === hoje.getTime() + 86400000) {
+    } else if (clicado.getTime() === hoje.getTime() + 86400000) {
         detailContainer.innerHTML += `<p style="text-align:center; font-size:0.7rem; color:var(--accent); margin-bottom:10px;">SISTEMA PREVÊ PARA AMANHÃ:</p>`;
         userData.tomorrowTasks.forEach(id => {
             const task = allHabits.find(h => h.id === id);
             detailContainer.innerHTML += renderHistoryItem(task.task, 'previsto');
         });
-    }
-    // 3. SE FOR PASSADO COM REGISTRO
-    else if (userData.historyTasks[dateStr]) {
+    } else if (userData.historyTasks[dateStr]) {
         const dayData = userData.historyTasks[dateStr];
         dayData.ids.forEach(id => {
             const task = allHabits.find(h => h.id === id);
@@ -153,7 +165,7 @@ function showDayDetail(dateStr) {
             detailContainer.innerHTML += renderHistoryItem(task.task, done ? 'concluido' : 'falhou');
         });
     } else {
-        detailContainer.innerHTML += `<p style="text-align:center; opacity:0.5;">Sem registos no sistema.</p>`;
+        detailContainer.innerHTML += `<p style="text-align:center; opacity:0.5;">Sem registros no sistema.</p>`;
     }
 }
 
@@ -217,51 +229,15 @@ function updateUI() {
     document.documentElement.style.setProperty('--accent', currentSetup.cor || '#007bff');
 }
 
-// --- 6. APOIO & NOTIFICAÇÕES ---
+// --- 6. UTILITÁRIOS & MODAIS ---
 window.copyPix = () => {
     const pixElement = document.getElementById('pix-key');
     if (pixElement) {
         const pixText = pixElement.innerText.trim();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(pixText).then(() => {
-                window.showModal("SUCESSO", "Código PIX copiado!");
-            }).catch(() => fallbackCopy(pixText));
-        } else {
-            fallbackCopy(pixText);
-        }
+        navigator.clipboard.writeText(pixText).then(() => {
+            window.showModal("SUCESSO", "Código PIX copiado!");
+        });
     }
-};
-
-function fallbackCopy(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
-    window.showModal("SUCESSO", "Código PIX copiado!");
-}
-
-window.ativarNotificacoesManual = async () => {
-    if (!window.OneSignalDeferred) {
-        window.showModal("SISTEMA", "Motor de notificações a carregar...");
-        return;
-    }
-    OneSignalDeferred.push(async function(OneSignal) {
-        try {
-            const permission = await OneSignal.Notifications.requestPermission();
-            if (permission === 'granted') {
-                if (typeof sendOneSignalTags === "function") {
-                    await sendOneSignalTags(userData);
-                    window.showModal("SUCESSO", "Tags de Inteligência Sincronizadas.");
-                }
-            } else {
-                window.showModal("AVISO", "Permissão negada ou bloqueada.");
-            }
-        } catch (e) {
-            window.showModal("ERRO", "Falha na conexão de alertas.");
-        }
-    });
 };
 
 window.showModal = (title, msg) => {
@@ -282,10 +258,9 @@ window.confirmReset = () => {
     }
 };
 
-// --- 7. LÓGICA DE DATAS (SINC DE MISSÕES) ---
+// --- 7. LÓGICA DE DATAS & SYNC ---
 function save() { 
     localStorage.setItem('mindset_data', JSON.stringify(userData));
-    if (typeof sendOneSignalTags === "function") sendOneSignalTags(userData);
 }
 
 async function syncToFirebase() {
@@ -319,12 +294,14 @@ function forceDateSync() {
                 ids: [...userData.dailyTaskIds],
                 done: [...userData.completedTodayIds]
             };
+            // Penalidade por não cumprir as 3 missões
             if (userData.tasksDoneToday < 3) {
                 userData.streak = 0;
                 userData.xp = Math.max(0, userData.xp - 500);
             }
         }
 
+        // Promove tarefas de amanhã para hoje ou seleciona novas
         if (userData.tomorrowTasks && userData.tomorrowTasks.length === 3) {
             userData.dailyTaskIds = userData.tomorrowTasks;
         } else {
@@ -336,12 +313,13 @@ function forceDateSync() {
         userData.lastDate = hojeStr;
         userData.tasksDoneToday = 0;
         userData.completedTodayIds = [];
+        
         save();
-    }
-    
-    if (!userData.tomorrowTasks || userData.tomorrowTasks.length === 0) {
-        userData.tomorrowTasks = selectNewTasks();
-        save();
+
+        // Sincroniza novas tarefas com OneSignal imediatamente
+        if (typeof sendOneSignalTags === "function") {
+            sendOneSignalTags(userData);
+        }
     }
 }
 
@@ -350,6 +328,7 @@ window.onload = () => {
     loadUserData();
     if (!userData) return;
 
+    // Aguarda carregamento dos arquivos de setup
     setTimeout(() => {
         const setupLib = {
             'patriarca': typeof patriarcaData !== 'undefined' ? patriarcaData : null,
@@ -378,6 +357,11 @@ window.onload = () => {
             updateUI();
             renderTasks();
             syncToFirebase();
+
+            // Sincronização inicial de tags ao entrar no App
+            if (typeof sendOneSignalTags === "function") {
+                sendOneSignalTags(userData);
+            }
         }
-    }, 600);
+    }, 800);
 };

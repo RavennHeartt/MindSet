@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v2.0
- * Gerenciamento de Vozes, Agendamento e Sincronização de Tags (SDK v16)
+ * MINDSET - NOTIFICATIONS ENGINE v3.0
+ * Ponte Ativa: LocalStorage/Firebase -> OneSignal Tags
  */
 
 const mindsetVoices = {
@@ -24,59 +24,66 @@ const mindsetVoices = {
 };
 
 /**
- * Sincroniza Identidade e Tags com o OneSignal (Padrão SDK v16)
+ * Função Principal: Sincroniza TUDO com OneSignal
+ * @param {Object} user - Objeto userData vindo do app.js ou index.html
  */
 async function sendOneSignalTags(user) {
-    if (!user || !user.nome || !user.setup) return;
+    if (!user || !user.nome || !user.setup) {
+        console.warn("OneSignal: Dados insuficientes para sincronizar tags.");
+        return;
+    }
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
+            // 1. Identificação única (External ID)
             const cleanId = user.nome.toLowerCase().trim().replace(/\s/g, '_');
-            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
-
-            // 1. Vincula o External ID (Login)
             await OneSignal.login(cleanId);
 
-            // 2. Envia as Tags de Usuário (Conforme Documentação OneSignal)
+            // 2. Cálculo de dados dinâmicos
+            const totalTasks = (user.dailyTaskIds || []).length;
+            const completedTasks = (user.completedTodayIds || []).length;
+            const pendentes = totalTasks - completedTasks;
+            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+
+            // 3. Envio das Tags (O OneSignal "pesca" o que enviamos aqui)
             await OneSignal.User.addTags({
-                "nome_usuario": String(user.nome),
+                "usuario_nome": String(user.nome),
                 "setup_ativo": String(user.setup),
                 "nivel_atual": String(user.level || 1),
+                "streak_dias": String(user.streak || 0),
+                "tarefas_pendentes": String(pendentes),
                 "msg_morning": String(voice.morning),
                 "msg_afternoon": String(voice.afternoon),
                 "msg_night_win": String(voice.night_win),
                 "msg_night_loss": String(voice.night_loss)
             });
 
-            console.log("OneSignal: Tags sincronizadas para " + cleanId);
+            console.log(`✅ OneSignal Sincronizado: ${cleanId} (${pendentes} pendentes)`);
+            
+            // Log opcional para debug no console do navegador
+            // const tagsAtuais = await OneSignal.User.getTags();
+            // console.log("Tags no OneSignal:", tagsAtuais);
+
         } catch (err) {
-            console.error("OneSignal Sync Error:", err);
+            console.error("❌ OneSignal Sync Error:", err);
         }
     });
 }
 
 /**
- * Inicializa notificações se o usuário já existir
- */
-function initNotifications() {
-    const localData = JSON.parse(localStorage.getItem('mindset_data'));
-    if (localData) {
-        sendOneSignalTags(localData);
-    }
-}
-
-/**
- * Agendamento de Fallback (Notificações locais caso o app esteja aberto)
+ * Fallback de notificações locais (Caso o app esteja aberto)
  */
 function checkNotificationSchedule() {
-    const localData = JSON.parse(localStorage.getItem('mindset_data'));
-    if (!localData) return;
-
+    const rawData = localStorage.getItem('mindset_data');
+    if (!rawData) return;
+    
+    const localData = JSON.parse(rawData);
     const agora = new Date();
     const h = agora.getHours();
     const m = agora.getMinutes();
 
+    // Só executa no minuto zero da hora
     if (m !== 0) return; 
 
     const voice = mindsetVoices[localData.setup] || mindsetVoices['patriarca'];
@@ -91,9 +98,12 @@ function checkNotificationSchedule() {
     }
 
     if (mensagem && Notification.permission === "granted") {
-        new Notification(titulo, { body: mensagem, icon: 'assets/icone-ios.png' });
+        new Notification(titulo, { 
+            body: mensagem, 
+            icon: 'assets/icone-ios.png' 
+        });
     }
 }
 
-// Inicia o intervalo de verificação local
+// Inicia verificação local a cada minuto
 setInterval(checkNotificationSchedule, 60000);
