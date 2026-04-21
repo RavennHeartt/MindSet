@@ -7,56 +7,56 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-// Coloque TODOS os seus setups aqui. Adicionei uma proteção caso falte algum.
+// Importante: Copie o objeto mindsetVoices EXATAMENTE como está no seu notifications.js
 const mindsetVoices = {
-    patriarca: { morning: "Bom dia, herdeiro.", afternoon: "Mantenha o foco.", night: "Relatório do dia." },
-    militar: { morning: "Sentido! Alvorada.", afternoon: "Sem desculpas.", night: "Missão cumprida?" },
-    // Adicione os outros aqui...
+    'patriarca': { morning: "...", afternoon: "...", night: "...", night_win: "...", night_loss: "..." },
+    // ... complete com todos os outros ...
 };
 
 async function updateAllUsers() {
-    try {
-        console.log("Iniciando sincronia com Firebase...");
-        const usersSnapshot = await db.collection('usuarios').get();
-        
-        const hora = new Date().getHours() - 3; // Ajuste para Brasília se o server for UTC
-        let periodo = 'night';
-        if (hora >= 5 && hora < 12) periodo = 'morning';
-        else if (hora >= 12 && hora < 18) periodo = 'afternoon';
+    console.log("🤖 Iniciando Processamento em Background...");
+    const usersSnapshot = await db.collection('usuarios').get();
+    
+    // Ajuste de fuso horário para Brasília (UTC-3)
+    const agora = new Date();
+    const horaBR = new Date(agora.getTime() - (3 * 60 * 60 * 1000)).getHours();
+    
+    let periodo = 'night';
+    if (horaBR >= 5 && horaBR < 12) periodo = 'morning';
+    else if (horaBR >= 12 && horaBR < 18) periodo = 'afternoon';
 
-        for (const doc of usersSnapshot.docs) {
-            const userData = doc.data();
-            const externalId = doc.id; // O ID do documento no Firebase
+    for (const doc of usersSnapshot.docs) {
+        const user = doc.data();
+        const uid = doc.id; // O ID do documento no Firebase
 
-            // PROTEÇÃO: Se o setup não existir, usa 'patriarca'
-            const setup = userData.setup || 'patriarca';
-            const vozes = mindsetVoices[setup] || mindsetVoices['patriarca'];
-            const saudacao = vozes[periodo] || "Foco no objetivo!"; // Backup final
-            
-            const nome = userData.nome || "Guerreiro";
-            const tarefas = userData.tarefas || [];
+        try {
+            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+            const tarefas = user.tarefas || [];
             const pendentes = tarefas.filter(t => !t.concluida).map(t => t.nome);
             
-            let marmita = `${nome}, ${saudacao} `;
-            if (pendentes.length > 0) marmita += `Pendentes: ${pendentes.join(', ')}`;
-            else marmita += "Tudo em dia!";
-
-            console.log(`Tentando atualizar: ${nome} (ID: ${externalId})`);
-
-            // Tenta atualizar no OneSignal
-            try {
-                await axios.put(
-                    `https://onesignal.com/api/v1/apps/${process.env.ONESIGNAL_APP_ID}/users/${externalId}`,
-                    { tags: { overall: marmita } },
-                    { headers: { "Authorization": `Basic ${process.env.ONESIGNAL_REST_KEY}` } }
-                );
-                console.log(`✅ ${nome} atualizado.`);
-            } catch (e) {
-                console.log(`⚠️ Pulei ${nome}: Usuário não vinculado no OneSignal ainda.`);
+            // Montagem da Marmita
+            let saudacao = voice[periodo] || "Foco no objetivo.";
+            let marmita = `${user.nome || 'Guerreiro'}, ${saudacao}`;
+            
+            if (periodo === 'night') {
+                marmita = (pendentes.length === 0) 
+                    ? voice.night_win.replace("$", user.nome) 
+                    : voice.night_loss.replace("$", user.nome);
             }
+            if (pendentes.length > 0) marmita += `\n\nPendente: ${pendentes.join(', ')}`;
+
+            // Tenta injetar a tag no OneSignal por baixo dos panos
+            await axios.put(
+                `https://onesignal.com/api/v1/apps/${process.env.ONESIGNAL_APP_ID}/users/${uid}`,
+                { tags: { overall: String(marmita) } },
+                { headers: { "Authorization": `Basic ${process.env.ONESIGNAL_REST_KEY}`, "Content-Type": "application/json" } }
+            );
+            console.log(`✅ Sincronizado: ${user.nome}`);
+        } catch (e) {
+            // Se der erro aqui, é porque o usuário ainda não abriu o app novo. 
+            // O robô ignora e passa para o próximo.
+            console.log(`[Background] Usuário ${uid} ainda não vinculado. Pulando...`);
         }
-    } catch (error) {
-        console.error("❌ Erro crítico:", error.message);
     }
 }
 updateAllUsers();
