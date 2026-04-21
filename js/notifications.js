@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v10.0
- * Foco: Popup Persistente + Reatividade Automática + Vínculo por UID
+ * MINDSET - NOTIFICATIONS ENGINE v11.0
+ * Foco: Resiliência de Rede, Vínculo de UID e Estabilidade no Firefox
  */
 
 const mindsetVoices = {
@@ -24,8 +24,7 @@ const mindsetVoices = {
 };
 
 /**
- * SINCRONIA REATIVA
- * Use esta função no app.js sempre que o usuário abrir o app ou marcar/desmarcar tarefas.
+ * SINCRONIA REATIVA (Chamada pelo app.js)
  */
 window.sincronizarMindsetOneSignal = (user) => {
     if (!user || !user.uid) return;
@@ -50,26 +49,25 @@ window.sincronizarMindsetOneSignal = (user) => {
                     : voice.night_loss.replace("$", user.nome);
             }
 
-            // Atualiza tags no OneSignal para garantir que o robô do GitHub tenha dados frescos
             await OneSignal.User.addTags({
                 "overall": String(marmita),
                 "pendentes": String(pendentes),
                 "setup": String(user.setup),
                 "uid": String(user.uid)
             });
-            console.log("🔄 OneSignal: Tags sincronizadas via reatividade.");
+            console.log("🔄 OneSignal: Tags sincronizadas.");
         } catch (e) {
-            console.warn("Falha na sincronia reativa:", e);
+            console.warn("Erro na sincronia reativa:", e);
         }
     });
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (O BOTÃO DE CONFIGURAÇÕES)
- * Força o desvínculo e pede permissão novamente para tentar disparar o popup.
+ * ATIVAR NOTIFICAÇÕES (Botão de Configurações)
+ * Simplificado para evitar erros de rede e forçar o login/permissão.
  */
 window.ativarNotificacoesManual = async () => {
-    console.log("🚀 Iniciando processo para forçar popup de permissão...");
+    console.log("🚀 Solicitando permissão OneSignal...");
     
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
@@ -78,29 +76,34 @@ window.ativarNotificacoesManual = async () => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            // 1. "Limpa" a subscrição atual (Opt-Out)
-            await OneSignal.User.PushSubscription.optOut();
-            
-            // 2. Garante que o login está correto no UID do Firebase
+            // 1. Vincula o UID do Firebase ao OneSignal
             await OneSignal.login(user.uid);
 
-            // 3. Solicita permissão (Aqui o navegador deve tentar mostrar o popup)
+            // 2. Verifica o estado atual para orientar o usuário
+            const permission = await OneSignal.Notifications.permission;
+            
+            if (permission === "denied") {
+                window.showModal("AÇÃO NECESSÁRIA", "As notificações estão bloqueadas no seu navegador. Clique no ícone de cadeado na barra de endereços e limpe as permissões.");
+                return;
+            }
+
+            // 3. Solicita a permissão (Popup)
             await OneSignal.Notifications.requestPermission();
             
-            // 4. Ativa novamente a subscrição (Opt-In)
-            await OneSignal.User.PushSubscription.optIn();
-
-            // 5. Envia as tags iniciais
+            // 4. Sincroniza as tags iniciais
             window.sincronizarMindsetOneSignal(user);
 
-            if (window.showModal) {
-                window.showModal("SISTEMA", "Verifique se o seu navegador solicitou permissão para notificações.");
+            if (permission !== "granted") {
+                window.showModal("SISTEMA", "Verifique se o seu navegador solicitou a permissão.");
+            } else {
+                window.showModal("SISTEMA", "Alertas sincronizados com sucesso!");
             }
+
         } catch (e) {
-            console.error("Erro ao tentar disparar popup:", e);
+            console.error("Erro OneSignal:", e);
+            window.showModal("ERRO DE CONEXÃO", "Não foi possível conectar ao servidor de alertas. Verifique sua internet.");
         }
     });
 };
 
-// Atalho para garantir compatibilidade com nomes antigos de funções
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
