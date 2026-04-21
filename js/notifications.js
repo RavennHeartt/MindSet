@@ -1,5 +1,5 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v3.1
+ * MINDSET - NOTIFICATIONS ENGINE v3.2
  * Ponte Ativa: LocalStorage/Firebase -> OneSignal Tags
  */
 
@@ -24,49 +24,45 @@ const mindsetVoices = {
 };
 
 /**
- * Função Principal: Sincroniza TUDO com OneSignal
+ * Sincroniza dados com OneSignal
  */
 async function sendOneSignalTags(user) {
-    if (!user || !user.nome || !user.setup) return;
+    if (!user || !user.nome) return;
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
             const cleanId = user.nome.toLowerCase().trim().replace(/\s/g, '_');
             
-            // EVITA O ERRO "OP FAILED": Só faz login se o ID mudar
+            // 1. Só executa login se o ID mudar (Evita Op failed)
             if (OneSignal.User.externalId !== cleanId) {
                 await OneSignal.login(cleanId);
             }
 
-            const totalTasks = (user.dailyTaskIds || []).length;
-            const completedTasks = (user.completedTodayIds || []).length;
-            const pendentes = totalTasks - completedTasks;
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+            const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
 
-            // Envia as tags
+            // 2. Envio simplificado de Tags
             await OneSignal.User.addTags({
                 "usuario_nome": String(user.nome),
-                "setup_ativo": String(user.setup),
-                "nivel_atual": String(user.level || 1),
-                "streak_dias": String(user.streak || 0),
-                "tarefas_pendentes": String(pendentes),
+                "setup": String(user.setup),
+                "nivel": String(user.level || 1),
+                "pendentes": String(pendentes),
+                "streak": String(user.streak || 0),
                 "msg_morning": String(voice.morning),
                 "msg_afternoon": String(voice.afternoon),
-                "msg_night_win": String(voice.night_win),
-                "msg_night_loss": String(voice.night_loss)
+                "msg_night": (pendentes === 0) ? String(voice.night_win) : String(voice.night_loss)
             });
 
-            console.log(`✅ OneSignal: Sincronizado com ${pendentes} tarefas pendentes.`);
+            console.log(`✅ OneSignal: Sincronizado para ${cleanId}`);
         } catch (err) {
-            // Se falhar, apenas silenciamos o erro no console para não poluir
-            console.warn("OneSignal: Sincronização em segundo plano.");
+            // Silencia erro no console do usuário final
         }
     });
 }
 
 /**
- * Verificação de Notificações Locais (Backup)
+ * Notificações Locais (Backup / App Aberto)
  */
 function checkNotificationSchedule() {
     const rawData = localStorage.getItem('mindset_data');
@@ -86,7 +82,6 @@ function checkNotificationSchedule() {
     if (h === 9) mensagem = voice.morning;
     else if (h === 14) mensagem = voice.afternoon;
     else if (h === 22) {
-        // Se o usuário fez as 3 tarefas
         const venceu = (localData.completedTodayIds || []).length >= 3;
         mensagem = venceu ? voice.night_win : voice.night_loss;
     }
@@ -99,4 +94,5 @@ function checkNotificationSchedule() {
     }
 }
 
-//setInterval(checkNotificationSchedule, 60000);
+// Inicia o loop de verificação local
+setInterval(checkNotificationSchedule, 60000);
