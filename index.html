@@ -35,10 +35,7 @@
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
-          serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "sw.js", 
           allowLocalhostAsSecureOrigin: true,
-          // requiresUserPrivacyConsent removido para não bloquear addTags
           promptOptions: { slidedown: { enabled: false } }
         });
       });
@@ -127,15 +124,16 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
     <script src="js/notifications.js"></script>
+    <script src="js/main.js"></script>
 
     <script>
+      // Registro do sw.js (apenas cache/PWA)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log("SW Ativo"))
-              .catch(err => console.error("Erro SW:", err));
+              .then(reg => console.log("PWA SW Ativo"))
+              .catch(err => console.error("Erro PWA SW:", err));
         });
       }
     </script>

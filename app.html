@@ -30,21 +30,12 @@
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      if (window.location.hostname.includes("github.io")) {
-          OneSignalDeferred.push(async function(OneSignal) {
-            try {
-              await OneSignal.init({
-                appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
-                serviceWorkerParam: { scope: "/" },
-                serviceWorkerPath: "sw.js",
-                allowLocalhostAsSecureOrigin: false,
-                requiresUserPrivacyConsent: false
-              });
-            } catch (e) {
-              console.warn("OneSignal erro:", e);
-            }
+      OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.init({
+              appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
+              allowLocalhostAsSecureOrigin: true
           });
-      }
+      });
     </script>
 </head>
 <body id="app-body">
@@ -61,7 +52,7 @@
             <li onclick="showSection('contribute')">☕ APOIAR</li>
             <li onclick="confirmReset()" class="reset-link">⚠️ RESETAR TUDO</li>
         </ul>
-        <div class="menu-footer">MINDSET v3.3</div>
+        <div class="menu-footer">MINDSET v3.5</div>
     </nav>
 
     <header class="hud-header">
@@ -97,15 +88,12 @@
             <h2 class="section-title">APOIAR O PROJETO</h2>
             <div class="contribute-card">
                 <span class="icon-coffee">☕</span>
-                <p class="support-text">O MindSet é mantido de forma independente. Seu apoio garante a evolução do sistema e a manutenção dos servidores.</p>
-                
+                <p class="support-text">O MindSet é mantido de forma independente. Seu apoio garante a evolução do sistema.</p>
                 <div class="pix-box">
                     <label>CHAVE PIX ALEATÓRIA</label>
                     <code id="pix-key">a6173bec-41b1-4cee-b5fc-c1dbcdf1c2c8</code>
                     <button class="btn-copy" onclick="copyPix()">📋 COPIAR CÓDIGO PIX</button>
                 </div>
-
-                <p class="support-footer">OPERADOR: RAVENHEART | SISTEMA CRIPTOGRAFADO</p>
             </div>
         </div>
     </main>
