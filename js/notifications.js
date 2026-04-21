@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v7.8
- * Foco: Resiliência contra erros de rede e instabilidade de Header
+ * MINDSET - NOTIFICATIONS ENGINE v8.0
+ * Foco: Vínculo Manual via API REST (Anti-Bloqueio Firefox)
  */
 
 const mindsetVoices = {
@@ -23,53 +23,60 @@ const mindsetVoices = {
     'minimalista': { morning: "ignore o ruído e foque apenas no que é essencial.", afternoon: "simplicidade é o último grau da sofisticação. Execute.", night_win: "Clareza absoluta e dia leve, $. Essencial cumprido.", night_loss: "Você se perdeu no excesso e no nada, $. Dia desperdiçado." }
 };
 
-async function sendOneSignalTags(user) {
+/**
+ * Função de tags - Agora tenta forçar o vínculo por baixo dos panos
+ */
+function sendOneSignalTags(user) {
     if (!user || !user.uid) return;
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(function(OneSignal) {
-        const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
-        const tTotal = user.dailyTaskIds || [];
-        const tFeitas = user.completedTodayIds || [];
-        const pendentes = tTotal.length - tFeitas.length;
+        // Força login novamente
+        OneSignal.login(user.uid);
         
-        let lista = "";
-        if (typeof currentSetup !== 'undefined' && currentSetup.habitos) {
-            const all = Object.values(currentSetup.habitos).flat();
-            const nomes = tTotal.filter(id => !tFeitas.includes(id)).map(id => all.find(h => h.id === id)?.task).filter(Boolean);
-            if (nomes.length > 0) lista = "\n\nMissões: " + nomes.join(', ');
-        }
+        const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+        const pendentesCount = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
+        const hora = new Date().getHours();
+        let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
+                      (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
+                      (pendentesCount === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-        const h = new Date().getHours();
-        let m = "";
-        if (h >= 5 && h < 12) m = `${user.nome}, ${voice.morning}${lista}`;
-        else if (h >= 12 && h < 18) m = `${user.nome}, ${voice.afternoon}${lista || "\n\nTudo ok."}`;
-        else m = (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome) + lista;
-
-        // Envio sem await para não travar em caso de erro de rede
-        OneSignal.User.addTags({ "overall": String(m), "uid": String(user.uid) });
+        OneSignal.User.addTags({ "overall": String(marmita), "uid": String(user.uid) });
+        console.log("📤 Tags enviadas via SDK.");
     });
 }
 
+/**
+ * RECOMPILAR - A FORÇA BRUTA
+ */
 window.ativarNotificacoesManual = () => {
-    console.log("🔄 Iniciando Vínculo...");
+    console.log("🔄 Tentando Vínculo Forçado...");
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(function(OneSignal) {
-        // 1. Tenta o login (sem await para evitar o travamento da Promise)
-        OneSignal.login(user.uid).catch(() => {});
-
-        // 2. Solicita permissão com um pequeno delay para a rede estabilizar
-        setTimeout(() => {
-            OneSignal.Notifications.requestPermission().then(() => {
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+            // 1. Login no SDK
+            await OneSignal.login(user.uid);
+            
+            // 2. Pedir permissão
+            await OneSignal.Notifications.requestPermission();
+            
+            // 3. Pegar o OneSignal ID interno (o player id do navegador)
+            const onesignalId = OneSignal.User.onesignalId;
+            
+            if (onesignalId) {
+                console.log("📍 ID Interno encontrado:", onesignalId);
+                // Se o SDK falhar em vincular, o nosso Robô do GitHub agora tem 
+                // um "alvo" para caçar. Mas vamos tentar enviar as tags agora.
                 sendOneSignalTags(user);
-                if (window.showModal) window.showModal("SISTEMA", "Vínculo solicitado.");
-            }).catch(() => {
-                console.warn("Permissão ignorada pelo browser.");
-            });
-        }, 1000);
+            }
+
+            if (window.showModal) window.showModal("SISTEMA", "Vínculo solicitado com sucesso.");
+        } catch (e) {
+            console.error("Erro no processo:", e);
+        }
     });
 };
 
