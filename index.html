@@ -62,7 +62,7 @@
                 <p class="install-text">Construa sua nova mentalidade com a experiência completa de aplicativo.</p>
                 <div class="install-actions">
                     <button id="btn-do-install" class="btn-install-premium">INSTALAR AGORA</button>
-                    <button id="btn-later" class="btn-later-premium">AGORA NÃO</button>
+                    <button id="btn-later" class="btn-later-premium" onclick="document.getElementById('pwa-install-container').style.display='none'">AGORA NÃO</button>
                 </div>
             </div>
         </div>
@@ -128,12 +128,12 @@
     <script src="js/main.js"></script>
 
     <script>
-      // Registro do sw.js (apenas cache/PWA)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+            // Unificamos o registro aqui
             navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log("PWA SW Ativo"))
-              .catch(err => console.error("Erro PWA SW:", err));
+              .then(reg => console.log("SW MindSet Ativo"))
+              .catch(err => console.error("Erro SW:", err));
         });
       }
     </script>
