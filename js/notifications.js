@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v12.2
- * Foco: Sincronia de Status Real + Hard Reset de Cache + Modais de Sucesso
+ * MINDSET - NOTIFICATIONS ENGINE v12.3
+ * Foco: UX (Feedback Visual Imediato) + Hard Reset + Sincronia Total
  */
 
 const mindsetVoices = {
@@ -48,23 +48,26 @@ window.sincronizarMindsetOneSignal = (user) => {
                 "uid": String(targetId),
                 "pendentes": String(pendentes)
             });
-            console.log("🔄 Sincronizado para ID:", targetId);
-        } catch (e) { console.warn("Erro na sincronia:", e); }
+        } catch (e) { console.warn("Erro na sincronia reativa:", e); }
     });
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (Hard Reset + Resposta Inteligente)
+ * ATIVAR NOTIFICAÇÕES (Double Prompt + Hard Reset)
  */
 window.ativarNotificacoesManual = async () => {
-    console.log("🚀 Iniciando ativação...");
-    
+    // 1. Feedback Visual Imediato para o usuário
+    if (window.showModal) {
+        window.showModal("CONFIGURANDO", "Preparando conexão... Clique em 'OK' e, em seguida, selecione 'Permitir' na janela que o seu navegador abrir.");
+    }
+    console.log("🚀 Iniciando limpeza e pedido de permissão...");
+
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
     const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : 'user_sem_id');
 
-    // 1. LIMPEZA PROFUNDA
+    // 2. LIMPEZA PROFUNDA DE CHOQUE
     try {
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -76,17 +79,19 @@ window.ativarNotificacoesManual = async () => {
         Object.keys(localStorage).forEach(key => {
             if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
         });
-    } catch (err) { console.warn("Erro na limpeza:", err); }
+    } catch (err) { console.warn("Erro na limpeza de cache:", err); }
 
-    // 2. DISPARO E VALIDAÇÃO
+    // 3. DISPARO DO ONESIGNAL
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
             await OneSignal.User.PushSubscription.optOut();
+            
+            // Dispara o popup nativo do navegador
             await OneSignal.Notifications.requestPermission();
             
-            // Aguarda 500ms para o navegador processar a escolha do usuário
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Pequeno delay para o navegador processar a resposta
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             const permission = await OneSignal.Notifications.permission;
             const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
@@ -94,22 +99,19 @@ window.ativarNotificacoesManual = async () => {
             if (permission === "granted" || isSubscribed) {
                 await OneSignal.login(targetId);
                 await OneSignal.User.PushSubscription.optIn(); 
-                
                 window.sincronizarMindsetOneSignal(user);
                 
                 if (window.showModal) {
-                    window.showModal("SISTEMA", "Notificações ativadas com sucesso!");
+                    window.showModal("SUCESSO", "Conexão estabelecida! Suas notificações foram ativadas.");
                 }
             } else if (permission === "denied") {
                 if (window.showModal) {
-                    window.showModal("AÇÃO NECESSÁRIA", "Você bloqueou as notificações. Verifique as configurações de permissão no ícone de cadeado do seu navegador.");
+                    window.showModal("AÇÃO NECESSÁRIA", "As notificações estão bloqueadas. Clique no cadeado da barra de endereços para permitir manualmente.");
                 }
             }
-            // Se fechar o popup sem clicar, o código encerra silenciosamente.
-
         } catch (e) {
             console.error("Erro na ativação:", e);
-            if (window.showModal) window.showModal("ERRO", "Falha ao tentar conectar com o servidor de alertas.");
+            if (window.showModal) window.showModal("SISTEMA", "Falha na comunicação com o servidor de alertas.");
         }
     });
 };
