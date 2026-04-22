@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v14.4
- * ARQUIVO INTEGRAL: Event-Driven Sync + Fix Op Failed + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v14.5
+ * ARQUIVO INTEGRAL: Eruda Conflict Protection + Event-Driven Sync + Firebase
  */
 
 const mindsetVoices = {
@@ -33,6 +33,12 @@ window.sincronizarMindsetOneSignal = async (user) => {
     if (!uid) return;
     localStorage.setItem('mindset_uid', uid);
 
+    // BLINDAGEM CONTRA ERUDA / NETWORK PROXY
+    if (window.eruda || window._eruda) {
+        console.warn("⚠️ MindSet: Eruda detectado. Sincronia OneSignal suspensa para evitar corrupção de Content-Length.");
+        window.__ONESIGNAL_DEBUG_LOCK__ = true;
+    }
+
     const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
     const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
     const hora = new Date().getHours();
@@ -44,32 +50,24 @@ window.sincronizarMindsetOneSignal = async (user) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            // 1. Iniciamos o login
             await OneSignal.login(uid);
-            console.log("🔑 Tentativa de login enviada para:", uid);
 
-            // 2. A MÁGICA: Escutamos a mudança de estado do usuário
-            // Só enviamos as tags quando o OneSignalId e o ExternalId (uid) estão consolidados
             OneSignal.User.addEventListener('change', async () => {
-                const isReady = 
-                    OneSignal.User.onesignalId && 
-                    OneSignal.User.externalId === uid &&
-                    OneSignal.User.PushSubscription.id;
-
-                if (isReady) {
+                const isReady = OneSignal.User.onesignalId && OneSignal.User.externalId === uid;
+                
+                if (isReady && !window.__ONESIGNAL_DEBUG_LOCK__) {
                     await OneSignal.User.addTags({
                         "overall": String(marmita),
                         "uid": String(uid),
-                        "pendentes": String(pendentes),
-                        "last_sync": new Date().toISOString()
+                        "pendentes": String(pendentes)
                     });
-                    console.log("🛰️ Tags sincronizadas no momento exato (Vínculo Servidor OK).");
+                    console.log("🛰️ Tags OneSignal sincronizadas.");
                 }
             });
         } catch (e) { console.error("Erro OneSignal:", e); }
     });
 
-    // Sincronia Firebase permanece para alimentar o Workflow
+    // Firebase continua 100% independente do Eruda
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -85,7 +83,7 @@ window.ativarNotificacoesManual = async () => {
     const data = raw ? JSON.parse(raw) : null;
     const uid = findUID(data);
 
-    if (window.showModal) window.showModal("SISTEMA", "Calibrando canais de comunicação...");
+    if (window.showModal) window.showModal("SISTEMA", "Verificando protocolos de rede...");
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
