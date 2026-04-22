@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v13.3
- * ARQUIVO INTEGRAL: Fix PWA Chrome (Forced Tag Sync) + Reset + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v13.4
+ * ARQUIVO INTEGRAL: Fix PWA Chrome (External ID Force) + Reset + Firebase
  */
 
 const mindsetVoices = {
@@ -12,7 +12,7 @@ const mindsetVoices = {
     },
     'matriarca': { 
         morning: "O lar prospera sob sua ordem. Reflita:", 
-        afternoon: "O equilíbrio da família exige sua attention constante aos detalhes.", 
+        afternoon: "O equilíbrio da família exige sua atenção constante aos detalhes.", 
         night_win: "Gestão impecável, $. Sua casa e sua linhagem estão em harmonia.", 
         night_loss: "A negligência de hoje cobrará seu preço amanhã, $." 
     },
@@ -108,9 +108,6 @@ const mindsetVoices = {
     }
 };
 
-/**
- * SINCRONIZAÇÃO COMPLETA (CORREÇÃO CHROME PWA)
- */
 window.sincronizarMindsetOneSignal = async (user) => {
     if (!user || !user.uid) return;
 
@@ -125,47 +122,41 @@ window.sincronizarMindsetOneSignal = async (user) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            // Força o login ANTES de mandar as tags para garantir o External ID no Chrome
+            // No PWA Chrome, o login precisa ser reconfirmado
             await OneSignal.login(user.uid);
             
-            // Pequeno delay para garantir que a sessão foi assumida
-            setTimeout(async () => {
-                await OneSignal.User.addTags({
-                    "overall": String(marmita),
-                    "uid": String(user.uid),
-                    "pendentes": String(pendentes),
-                    "last_app_sync": new Date().toISOString()
-                });
-                console.log("✅ Tags OneSignal sincronizadas para: " + user.uid);
-            }, 500);
+            // Usamos a função de tags com uma promessa de verificação
+            await OneSignal.User.addTags({
+                "overall": String(marmita),
+                "uid": String(user.uid),
+                "pendentes": String(pendentes),
+                "last_app_sync": new Date().toISOString()
+            });
+            console.log("✅ Tags enviadas ao OneSignal para o UID: " + user.uid);
         } catch (e) { console.error("Erro OneSignal Tags:", e); }
     });
 
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-            await updateDoc(doc(window.db, "users", user.uid), {
+            const userRef = doc(window.db, "users", user.uid);
+            await updateDoc(userRef, {
                 setup: user.setup,
                 nome: user.nome,
                 pendentes: pendentes,
                 marmitaAtual: marmita,
                 lastSync: new Date().toISOString()
             });
-            console.log("🔥 Firebase atualizado.");
+            console.log("🔥 Firebase Atualizado.");
         }
     } catch (e) { console.warn("Erro Firebase Sync:", e); }
 };
 
-/**
- * ATIVAR NOTIFICAÇÕES (HARD RESET INTEGRAL)
- */
 window.ativarNotificacoesManual = async () => {
-    if (window.showModal) {
-        window.showModal("SISTEMA", "Resetando drivers de notificação... Por favor, autorize no navegador.");
-    }
+    if (window.showModal) window.showModal("SISTEMA", "Resetando drivers de notificação... Autorize no navegador.");
 
     (async () => {
-        console.log("🧨 LIMPANDO INSTÂNCIAS ANTIGAS...");
+        console.log("🧨 LIMPANDO INSTÂNCIAS...");
 
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -184,7 +175,7 @@ window.ativarNotificacoesManual = async () => {
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         window.OneSignalDeferred.push(async function(OneSignal) {
             try {
-                // Reset de inscrição
+                // Reset agressivo de inscrição para PWAs
                 await OneSignal.User.PushSubscription.optOut();
                 await OneSignal.User.PushSubscription.optIn();
                 
@@ -192,11 +183,14 @@ window.ativarNotificacoesManual = async () => {
                 await OneSignal.Notifications.requestPermission();
                 
                 const checkInterval = setInterval(async () => {
+                    // Verificação dupla: SDK + API Nativa
                     if (Notification.permission === "granted") {
                         clearInterval(checkInterval);
                         const raw = localStorage.getItem('mindset_data');
                         if (raw) {
                             const userData = JSON.parse(raw);
+                            // Login forçado para garantir que as tags subam vinculadas ao UID
+                            await OneSignal.login(userData.uid);
                             await window.sincronizarMindsetOneSignal(userData);
                         }
                         if (window.showModal) window.showModal("SUCESSO", "Conectado com sucesso!");
