@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v14.5
- * ARQUIVO INTEGRAL: Eruda Conflict Protection + Event-Driven Sync + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v14.6
+ * ARQUIVO INTEGRAL: Direct SDK Communication (No Deferred for Sync) + Firebase
  */
 
 const mindsetVoices = {
@@ -33,12 +33,6 @@ window.sincronizarMindsetOneSignal = async (user) => {
     if (!uid) return;
     localStorage.setItem('mindset_uid', uid);
 
-    // BLINDAGEM CONTRA ERUDA / NETWORK PROXY
-    if (window.eruda || window._eruda) {
-        console.warn("⚠️ MindSet: Eruda detectado. Sincronia OneSignal suspensa para evitar corrupção de Content-Length.");
-        window.__ONESIGNAL_DEBUG_LOCK__ = true;
-    }
-
     const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
     const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
     const hora = new Date().getHours();
@@ -47,27 +41,30 @@ window.sincronizarMindsetOneSignal = async (user) => {
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
+    // COMUNICAÇÃO DIRETA (FORA DO DEFERRED)
+    if (window.OneSignal) {
         try {
             await OneSignal.login(uid);
-
-            OneSignal.User.addEventListener('change', async () => {
-                const isReady = OneSignal.User.onesignalId && OneSignal.User.externalId === uid;
-                
-                if (isReady && !window.__ONESIGNAL_DEBUG_LOCK__) {
-                    await OneSignal.User.addTags({
-                        "overall": String(marmita),
-                        "uid": String(uid),
-                        "pendentes": String(pendentes)
-                    });
-                    console.log("🛰️ Tags OneSignal sincronizadas.");
-                }
+            await OneSignal.User.addTags({
+                "overall": String(marmita),
+                "uid": String(uid),
+                "pendentes": String(pendentes),
+                "last_sync": new Date().toISOString()
             });
-        } catch (e) { console.error("Erro OneSignal:", e); }
-    });
+            console.log("✅ Tags enviadas em tempo real via SDK Ativo.");
+        } catch (e) {
+            console.error("Erro OneSignal Realtime:", e);
+        }
+    } else {
+        // Fallback apenas se o SDK ainda não carregou (raro em app.html)
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async (OS) => {
+            await OS.login(uid);
+            await OS.User.addTags({ "overall": String(marmita), "uid": String(uid) });
+        });
+    }
 
-    // Firebase continua 100% independente do Eruda
+    // Sincronia Firebase (Independente)
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -83,19 +80,18 @@ window.ativarNotificacoesManual = async () => {
     const data = raw ? JSON.parse(raw) : null;
     const uid = findUID(data);
 
-    if (window.showModal) window.showModal("SISTEMA", "Verificando protocolos de rede...");
+    if (window.showModal) window.showModal("SISTEMA", "Reconectando canais de alerta...");
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
+    if (window.OneSignal) {
         try {
             await OneSignal.Notifications.requestPermission();
             if (uid) {
                 await OneSignal.login(uid);
                 if (data) window.sincronizarMindsetOneSignal(data);
             }
-            if (window.showModal) window.showModal("SUCESSO", "Protocolo Ativo.");
+            if (window.showModal) window.showModal("SUCESSO", "Sistema online!");
         } catch (e) { console.error(e); }
-    });
+    }
 };
 
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
