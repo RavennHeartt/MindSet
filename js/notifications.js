@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v13.5
- * ARQUIVO INTEGRAL: Fix "externalId is empty" + PWA Chrome + Reset + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v13.7
+ * ARQUIVO INTEGRAL: Fix UID Auto-Gen + PWA Chrome + Reset + Firebase Sync
  */
 
 const mindsetVoices = {
@@ -108,13 +108,22 @@ const mindsetVoices = {
     }
 };
 
+/**
+ * SINCRONIZAÇÃO COMPLETA (ONESIGNAL + FIREBASE)
+ */
 window.sincronizarMindsetOneSignal = async (user) => {
-    // Validação rigorosa do UID para evitar o erro "externalId is empty"
-    const uid = user?.uid || localStorage.getItem('mindset_uid');
+    // RECONSTRUÇÃO DO UID: Caso o objeto não tenha o campo UID, geramos o slug (nome_do_usuario)
+    const uid = user?.uid || 
+                localStorage.getItem('mindset_uid') || 
+                (user?.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+
     if (!uid) {
-        console.error("❌ Erro: UID não encontrado para sincronia.");
+        console.error("❌ Sincronia abortada: UID não identificado.");
         return;
     }
+
+    // Garante persistência do ID para futuras chamadas
+    localStorage.setItem('mindset_uid', uid);
 
     const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
     const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
@@ -124,6 +133,7 @@ window.sincronizarMindsetOneSignal = async (user) => {
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
+    // 1. ATUALIZA ONESIGNAL
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
@@ -138,37 +148,41 @@ window.sincronizarMindsetOneSignal = async (user) => {
         } catch (e) { console.error("Erro OneSignal Tags:", e); }
     });
 
+    // 2. ATUALIZA FIREBASE (Coleção 'users' para o Robô ler)
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-            await updateDoc(doc(window.db, "users", uid), {
+            const userRef = doc(window.db, "users", uid);
+            await updateDoc(userRef, {
                 setup: user.setup,
                 nome: user.nome,
                 pendentes: pendentes,
                 marmitaAtual: marmita,
                 lastSync: new Date().toISOString()
             });
-            console.log("🔥 Firebase atualizado.");
+            console.log("🔥 Firebase 'users' atualizado.");
         }
     } catch (e) { console.warn("Erro Firebase Sync:", e); }
 };
 
+/**
+ * ATIVAR NOTIFICAÇÕES (HARD RESET + RECONSTRUÇÃO DE IDENTIDADE)
+ */
 window.ativarNotificacoesManual = async () => {
-    if (window.showModal) window.showModal("SISTEMA", "Limpando cache e preparando drivers de notificação...");
+    if (window.showModal) window.showModal("SISTEMA", "Resetando drivers e localizando ID de usuário...");
 
     (async () => {
-        console.log("🧨 INICIANDO EXPLOSÃO DE CACHE...");
+        console.log("🧨 LIMPANDO INSTÂNCIAS...");
 
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let reg of registrations) {
-                if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
-                    await reg.unregister();
-                }
+                if (reg.active && reg.active.scriptURL.includes('OneSignal')) await reg.unregister();
             }
         }
 
         ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'].forEach(db => indexedDB.deleteDatabase(db));
+        
         Object.keys(localStorage).forEach(key => {
             if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
         });
@@ -178,8 +192,6 @@ window.ativarNotificacoesManual = async () => {
             try {
                 await OneSignal.User.PushSubscription.optOut();
                 await OneSignal.User.PushSubscription.optIn();
-                
-                console.log("🚀 Disparando Prompt Nativo...");
                 await OneSignal.Notifications.requestPermission();
                 
                 const checkInterval = setInterval(async () => {
@@ -188,13 +200,17 @@ window.ativarNotificacoesManual = async () => {
                         
                         const raw = localStorage.getItem('mindset_data');
                         const userData = raw ? JSON.parse(raw) : null;
-                        const uid = userData?.uid || localStorage.getItem('mindset_uid');
+                        
+                        // Busca ou Reconstrói o UID
+                        const uid = userData?.uid || 
+                                    localStorage.getItem('mindset_uid') || 
+                                    (userData?.nome ? userData.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
 
                         if (uid) {
                             await OneSignal.login(uid);
                             if (userData) await window.sincronizarMindsetOneSignal(userData);
                         } else {
-                            console.error("❌ Erro Crítico: externalId (UID) continua vazio no callback.");
+                            console.error("❌ Falha crítica: UID não encontrado após permissão.");
                         }
 
                         if (window.showModal) window.showModal("SUCESSO", "Conectado com sucesso!");

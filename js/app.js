@@ -272,7 +272,7 @@ async function syncToFirebase() {
     // IMPORTANTE: userId agora é fixado pelo nome para bater com o Robô
     const userId = userData.nome.toLowerCase().trim().replace(/\s/g, '_');
     try {
-        await db.collection("usuarios").doc(userId).set({ 
+        await db.collection("users").doc(userId).set({ 
             ...userData, 
             ultimaSincronizacao: firebase.firestore.FieldValue.serverTimestamp() 
         }, { merge: true });
