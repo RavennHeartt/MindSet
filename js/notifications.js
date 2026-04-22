@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v13.1
- * ARQUIVO INTEGRAL: Sincronia OneSignal (External ID), Firebase e Reset Bruto
+ * MINDSET - NOTIFICATIONS ENGINE v13.2
+ * ARQUIVO INTEGRAL: Reset de Cache + Sincronia Firebase + Vozes Revisadas + Forçar Popup
  */
 
 const mindsetVoices = {
@@ -109,13 +109,10 @@ const mindsetVoices = {
 };
 
 /**
- * SINCRONIZAÇÃO COMPLETA
+ * SINCRONIZAÇÃO COMPLETA (FIREBASE + ONESIGNAL)
  */
 window.sincronizarMindsetOneSignal = async (user) => {
-    if (!user || !user.uid) {
-        console.warn("Sincronia abortada: Usuário sem UID.");
-        return;
-    }
+    if (!user || !user.uid) return;
 
     const targetId = user.uid;
     const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
@@ -126,7 +123,6 @@ window.sincronizarMindsetOneSignal = async (user) => {
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-    // Sincronia OneSignal com External ID forçado
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
@@ -138,12 +134,9 @@ window.sincronizarMindsetOneSignal = async (user) => {
                 "last_app_sync": new Date().toISOString()
             });
             console.log("✅ Tags OneSignal atualizadas.");
-        } catch (e) {
-            console.error("Falha ao atualizar tags OneSignal:", e);
-        }
+        } catch (e) { console.error("Erro OneSignal Tags:", e); }
     });
 
-    // Sincronia Firebase para consumo do Workflow
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -155,83 +148,68 @@ window.sincronizarMindsetOneSignal = async (user) => {
                 marmitaAtual: marmita,
                 lastSync: new Date().toISOString()
             });
-            console.log("🔥 Firebase atualizado com sucesso.");
-        } else {
-            console.warn("Database não inicializado.");
+            console.log("🔥 Firebase atualizado.");
         }
-    } catch (e) {
-        console.error("Erro na persistência Firebase:", e);
-    }
+    } catch (e) { console.warn("Erro Firebase Sync:", e); }
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (O SEU SCRIPT DE EXPLOSÃO DE CACHE)
+ * ATIVAR NOTIFICAÇÕES (HARD RESET + FORÇAR PROMPT)
  */
 window.ativarNotificacoesManual = async () => {
     if (window.showModal) {
-        window.showModal("SISTEMA", "Reiniciando protocolos de comunicação... Por favor, autorize a permissão no navegador.");
+        window.showModal("SISTEMA", "Protocolo de limpeza iniciado. Por favor, autorize a permissão no pop-up do navegador a seguir.");
     }
 
     (async () => {
-        console.log("🧨 INICIANDO EXPLOSÃO DE CACHE DE NOTIFICAÇÕES...");
+        console.log("🧨 INICIANDO EXPLOSÃO DE CACHE...");
 
+        // 1. Limpeza de Service Workers
         if ('serviceWorker' in navigator) {
-            try {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (let reg of registrations) {
-                    if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
-                        await reg.unregister();
-                        console.log("🗑️ Service Worker removido.");
-                    }
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let reg of registrations) {
+                if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
+                    await reg.unregister();
                 }
-            } catch (err) {
-                console.error("Erro ao remover SW:", err);
             }
         }
 
-        const databases = ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'];
-        databases.forEach(dbName => {
-            try {
-                const req = indexedDB.deleteDatabase(dbName);
-                req.onsuccess = () => console.log(`✅ Banco ${dbName} deletado.`);
-            } catch (err) {
-                console.error(`❌ Erro banco ${dbName}:`, err);
-            }
-        });
-
+        // 2. Limpeza de Bancos e LocalStorage
+        ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'].forEach(db => indexedDB.deleteDatabase(db));
         Object.keys(localStorage).forEach(key => {
-            if (key.includes('os_ls_') || key.includes('OneSignal')) {
-                localStorage.removeItem(key);
-            }
+            if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
         });
-        console.log("Sweep de LocalStorage concluído.");
 
+        // 3. Reset do SDK e Solicitação de Permissão
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         window.OneSignalDeferred.push(async function(OneSignal) {
             try {
-                await OneSignal.User.PushSubscription.optOut(); 
+                // Forçamos o optIn para "acordar" o sistema de inscrição
+                await OneSignal.User.PushSubscription.optIn(); 
+                
+                console.log("🚀 Disparando Prompt Nativo...");
                 await OneSignal.Notifications.requestPermission();
                 
-                console.log("🚀 Solicitação enviada ao navegador.");
-
                 const checkInterval = setInterval(async () => {
-                    const permission = await OneSignal.Notifications.permission;
+                    const permission = Notification.permission;
+                    
                     if (permission === "granted") {
                         clearInterval(checkInterval);
                         const raw = localStorage.getItem('mindset_data');
                         if (raw) {
                             const userData = JSON.parse(raw);
+                            await OneSignal.login(userData.uid);
                             await window.sincronizarMindsetOneSignal(userData);
                         }
                         if (window.showModal) window.showModal("SUCESSO", "Notificações ativadas!");
                     } else if (permission === "denied") {
                         clearInterval(checkInterval);
-                        console.warn("Permissão negada pelo usuário.");
+                        console.warn("Permissão negada.");
                     }
                 }, 1000);
 
             } catch (e) {
-                console.error("Erro crítico no OneSignal:", e);
+                console.error("Erro no OneSignal:", e);
             }
         });
     })();
