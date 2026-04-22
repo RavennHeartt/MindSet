@@ -1,4 +1,7 @@
-console.log("✅ Ficheiro notifications.js carregado com sucesso!");
+/**
+ * MINDSET - NOTIFICATIONS ENGINE v12.6
+ * Foco: Execução Literal do Script de Explosão de Cache
+ */
 
 const mindsetVoices = {
     'patriarca': { morning: "a fundação da sua linhagem hoje depende da sua ordem.", afternoon: "um líder mantém a visão clara enquanto executa o necessário.", night_win: "Dever cumprido, $. A linhagem está segura sob sua guarda.", night_loss: "Você falhou com sua autoridade hoje, $. A desordem enfraquece seu legado." },
@@ -40,61 +43,71 @@ window.sincronizarMindsetOneSignal = (user) => {
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (Sincronizado com o clique do utilizador)
+ * FUNÇÃO VINCULADA AO BOTÃO
  */
-window.ativarNotificacoesManual = async function() {
-    // ESTE É O SCRIPT DO ERUDA ADAPTADO
-    console.log("🧨 INICIANDO EXPLOSÃO DE CACHE DE NOTIFICAÇÕES...");
+window.ativarNotificacoesManual = async () => {
+    
+    // O SCRIPT EXATO QUE VOCÊ SOLICITOU:
+    (async () => {
+        console.log("🧨 INICIANDO EXPLOSÃO DE CACHE DE NOTIFICAÇÕES...");
 
-    // 1. Service Workers
-    if ('serviceWorker' in navigator) {
-        try {
+        // 1. Desregistrar todos os Service Workers relacionados ao OneSignal
+        if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let reg of registrations) {
                 if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
                     await reg.unregister();
-                    console.log("🗑️ Service Worker removido.");
+                    console.log("🗑️ Service Worker do OneSignal removido.");
                 }
             }
-        } catch (e) { console.error(e); }
-    }
-
-    // 2. IndexedDB
-    const databases = ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'];
-    databases.forEach(dbName => {
-        indexedDB.deleteDatabase(dbName);
-        console.log(`✅ Tentativa de deletar banco: ${dbName}`);
-    });
-
-    // 3. LocalStorage
-    Object.keys(localStorage).forEach(key => {
-        if (key.includes('os_ls_') || key.includes('OneSignal')) {
-            localStorage.removeItem(key);
         }
-    });
-    console.log("🧹 LocalStorage limpo.");
 
-    // 4. OneSignal Prompt
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-            console.log("🚀 Disparando Popup Nativo...");
-            await OneSignal.User.PushSubscription.optOut(); 
-            await OneSignal.Notifications.requestPermission();
-            
-            // Verificação de Sucesso Amigável
-            setTimeout(async () => {
-                const permission = await OneSignal.Notifications.permission;
-                if (permission === "granted") {
-                    if (window.showModal) window.showModal("SUCESSO", "Conexão ativada! Você já pode receber os seus alertas.");
-                }
-            }, 2000);
+        // 2. Deletar os bancos de dados IndexedDB que o OneSignal usa
+        const databases = ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'];
+        databases.forEach(dbName => {
+            const req = indexedDB.deleteDatabase(dbName);
+            req.onsuccess = () => console.log(`✅ Banco ${dbName} deletado com sucesso.`);
+            req.onerror = () => console.error(`❌ Erro ao deletar banco ${dbName}.`);
+            req.onblocked = () => console.warn(`⚠️ Banco ${dbName} bloqueado (feche outras abas).`);
+        });
 
-        } catch (e) {
-            console.error("Erro no OneSignal:", e);
-        }
-    });
+        // 3. Limpar LocalStorage e SessionStorage do OneSignal
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('os_ls_') || key.includes('OneSignal')) {
+                localStorage.removeItem(key);
+            }
+        });
+        console.log("🧹 LocalStorage limpo.");
+
+        // 4. Resetar o estado do SDK e pedir permissão do zero
+        console.log("🚀 Reiniciando SDK e disparando Popup...");
+        
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                // Isso "limpa" a memória do SDK na sessão atual
+                await OneSignal.User.PushSubscription.optOut(); 
+                
+                // AGORA SIM: O comando para forçar o popup nativo
+                await OneSignal.Notifications.requestPermission();
+                
+                console.log("🔔 Popup disparado! Verifique o topo da tela.");
+                
+                // Feedback amigável para o usuário comum em vez do alert técnico
+                setTimeout(async () => {
+                    const permission = await OneSignal.Notifications.permission;
+                    if (permission === "granted" && window.showModal) {
+                        window.showModal("SUCESSO", "Notificações ativadas com sucesso!");
+                        const raw = localStorage.getItem('mindset_data');
+                        if (raw) window.sincronizarMindsetOneSignal(JSON.parse(raw));
+                    }
+                }, 1000);
+
+            } catch (e) {
+                console.error("Erro ao solicitar popup:", e);
+            }
+        });
+    })();
 };
 
-// Aliases para garantir que o botão encontre a função
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
