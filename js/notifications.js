@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v14.0
- * ARQUIVO INTEGRAL: Resiliência Total de ID + Fix PWA Chrome/Firefox + Firebase Sync
+ * MINDSET - NOTIFICATIONS ENGINE v14.1
+ * ARQUIVO INTEGRAL: Login Promise + Fix Op Failed + Firebase Sync
  */
 
 const mindsetVoices = {
@@ -8,7 +8,7 @@ const mindsetVoices = {
     'matriarca': { morning: "O lar prospera sob sua ordem. Reflita:", afternoon: "O equilíbrio da família exige sua atenção constante aos detalhes.", night_win: "Gestão impecável, $. Sua casa e sua linhagem estão em harmonia.", night_loss: "A negligência de hoje cobrará seu preço amanhã, $." },
     'cavalheiro': { morning: "A honra precede a ação. Sua bússola hoje é:", afternoon: "A etiqueta exige que suas obrigações sejam tratadas com prioridade.", night_win: "Um dia de conduta exemplar, $. Você honrou sua palavra.", night_loss: "Sua falta de disciplina manchou sua reputação hoje, $." },
     'dama': { morning: "Sua postura define o tom do dia. Veja:", afternoon: "Governe suas ações com a classe de quem conhece o próprio valor.", night_win: "Vitória e maestria, $. Você dominou o dia com elegância.", night_loss: "A procrastinação ofuscou seu brilho hoje, $. Retome a postura." },
-    'ceo_ele': { morning: "O mercado abriu. Sua estratégia hoje é:", afternoon: "Performance é o único KPI que importa agora. Execute!", night_win: "Alta performance confirmada, $. Lucro máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
+    'ceo_ele': { morning: "O mercado abriu. Sua estratégia hoje é:", afternoon: "Performance é o único KPI que importa agora. Execute!", night_win: "Alta performance confirmed, $. Lucro máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
     'ceo_ela': { morning: "Liderança é ação. Seu comando hoje é:", afternoon: "Estratégia sem execução é alucinação. Foque no que importa.", night_win: "Visão estratégica concluída, $. Você liderou com sucesso.", night_loss: "Déficit de produtividade, $. Sua gestão foi falha hoje." },
     'militar_ele': { morning: "ALVORADA! Assuma o seu posto. Sua doutrina hoje é:", afternoon: "O inimigo é disciplinado e não descansa. Mantenha o padrão!", night_win: "Missão cumprida, $. Padrão mantido. Descanso autorizado.", night_loss: "Fracasso operacional por negligência, $. Durma com isso." },
     'militar_ela': { morning: "ALVORADA! Estabeleça as prioridades. A diretriz é:", afternoon: "O terreno é hostil para os indisciplinados. Mantenha o foco.", night_win: "Objetivos atingidos, $. Comando respeitado. Excelente.", night_loss: "Indisciplina detectada, $. Você quebrou o padrão hoje." },
@@ -23,16 +23,17 @@ const mindsetVoices = {
     'devota': { morning: "Consagre suas horas. O propósito hoje é:", afternoon: "Mantenha a constância no dever, sem desviar o olhar.", night_win: "Espírito fortalecido e dever cumprido, $. Siga firme.", night_loss: "Você cedeu às tentações da preguiça, $. Sua base fraquejou." }
 };
 
-// Função auxiliar para encontrar o ID não importa o que aconteça
 const findUID = (data) => {
-    return data?.uid || 
-           localStorage.getItem('mindset_uid') || 
+    return data?.uid || localStorage.getItem('mindset_uid') || 
            (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null) ||
            (window.userData?.nome ? window.userData.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
 };
 
+
 window.sincronizarMindsetOneSignal = async (user) => {
-    const uid = findUID(user);
+    const uid = user?.uid || localStorage.getItem('mindset_uid') || 
+                (user?.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+
     if (!uid) return;
     localStorage.setItem('mindset_uid', uid);
 
@@ -48,14 +49,16 @@ window.sincronizarMindsetOneSignal = async (user) => {
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
             await OneSignal.login(uid);
+            // Agora o delay pode ser menor, pois não há conflito de SW
             setTimeout(async () => {
                 await OneSignal.User.addTags({
                     "overall": String(marmita),
                     "uid": String(uid),
                     "pendentes": String(pendentes)
                 });
-            }, 1000);
-        } catch (e) { console.error("Erro OneSignal Tags:", e); }
+                console.log("✅ Tags sincronizadas via Canal Limpo.");
+            }, 800);
+        } catch (e) { console.error("Erro OneSignal:", e); }
     });
 
     try {
@@ -69,52 +72,23 @@ window.sincronizarMindsetOneSignal = async (user) => {
 };
 
 window.ativarNotificacoesManual = async () => {
-    // CAPTURA DE SEGURANÇA ANTES DO RESET
-    const rawPre = localStorage.getItem('mindset_data');
-    const dataPre = rawPre ? JSON.parse(rawPre) : (window.userData || null);
-    const uidPre = findUID(dataPre);
+    const raw = localStorage.getItem('mindset_data');
+    const data = raw ? JSON.parse(raw) : null;
+    const uid = data?.uid || localStorage.getItem('mindset_uid') || (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
 
-    if (window.showModal) window.showModal("SISTEMA", "Resetando drivers de notificação...");
+    if (window.showModal) window.showModal("SISTEMA", "Reconectando canais de alerta...");
 
-    (async () => {
-        if ('serviceWorker' in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            for (let reg of regs) { if (reg.active && reg.active.scriptURL.includes('OneSignal')) await reg.unregister(); }
-        }
-        ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'].forEach(db => indexedDB.deleteDatabase(db));
-        
-        Object.keys(localStorage).forEach(key => { if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key); });
-        
-        // REINJETA O UID PARA O CALLBACK NÃO FICAR VAZIO
-        if (uidPre) localStorage.setItem('mindset_uid', uidPre);
-
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async function(OneSignal) {
-            try {
-                await OneSignal.User.PushSubscription.optOut();
-                await OneSignal.User.PushSubscription.optIn();
-                await OneSignal.Notifications.requestPermission();
-                
-                const check = setInterval(async () => {
-                    if (Notification.permission === "granted") {
-                        clearInterval(check);
-                        
-                        const rawPost = localStorage.getItem('mindset_data');
-                        const dataPost = rawPost ? JSON.parse(rawPost) : dataPre;
-                        const uidPost = findUID(dataPost);
-
-                        if (uidPost) {
-                            await OneSignal.login(uidPost);
-                            if (dataPost) await window.sincronizarMindsetOneSignal(dataPost);
-                            if (window.showModal) window.showModal("SUCESSO", "Conectado com sucesso!");
-                        } else {
-                            console.error("❌ Erro: UID não recuperado.");
-                        }
-                    } else if (Notification.permission === "denied") { clearInterval(check); }
-                }, 1000);
-            } catch (e) { console.error(e); }
-        });
-    })();
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+            await OneSignal.Notifications.requestPermission();
+            if (uid) {
+                await OneSignal.login(uid);
+                if (data) window.sincronizarMindsetOneSignal(data);
+            }
+            if (window.showModal) window.showModal("SUCESSO", "Sistema online!");
+        } catch (e) { console.error(e); }
+    });
 };
 
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
