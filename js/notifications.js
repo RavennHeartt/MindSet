@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v11.1
- * Foco: Correção de ExternalID Empty + Vínculo de Identidade Seguro
+ * MINDSET - NOTIFICATIONS ENGINE v12.0
+ * Foco: Hard Reset de Cache + Disparo de Popup + Feedback via Modais
  */
 
 const mindsetVoices = {
@@ -11,7 +11,7 @@ const mindsetVoices = {
     'devoto': { morning: "consagre cada hora deste dia; a disciplina é sua oração.", afternoon: "mantenha a constância no bem e no dever, sem desviar o olhar.", night_win: "Espírito fortalecido e dever cumprido, $. Vá em paz.", night_loss: "Você cedeu às tentações da preguiça, $. Sua base fraquejou." },
     'devota': { morning: "sua força interior é refletida na ordem do seu dia.", afternoon: "persista no seu propósito com fé e dedicação total.", night_win: "Coração em paz e missões cumpridas, $. Você venceu.", night_loss: "A desordem afastou sua clareza hoje, $. Reze e recomece." },
     'ceo_ele': { morning: "o mercado não perdoa os lentos. Inicie a operação.", afternoon: "performance é o único KPI que importa agora. Execute.", night_win: "Alta performance confirmada, $. Lucro mental máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
-    'ceo_ela': { morning: "liderança não é cargo, é action. Comande seu destino.", afternoon: "estratégia sem execução é alucinação. Foque no que importa.", night_win: "Visão estratégica concluída, $. Você liderou com sucesso.", night_loss: "Déficit de produtividade, $. Sua gestão foi falha hoje." },
+    'ceo_ela': { morning: "liderança não é cargo, é ação. Comande seu destino.", afternoon: "estratégia sem execução é alucinação. Foque no que importa.", night_win: "Visão estratégica concluída, $. Você liderou com sucesso.", night_loss: "Déficit de produtividade, $. Sua gestão foi falha hoje." },
     'militar_ele': { morning: "disciplina é liberdade. Assuma o seu posto.", afternoon: "mantenha o padrão e a cadência. O objetivo está à vista.", night_win: "Missão cumprida, $. Padrão mantido. Descanso autorizado.", night_loss: "Fracasso operacional por negligência, $. Durma com isso." },
     'militar_ela': { morning: "ordem e comando. Estabeleça as prioridades agora.", afternoon: "o terreno é hostil para os indisciplinados. Mantenha o foco.", night_win: "Objetivos atingidos, $. Comando respeitado. Excelente.", night_loss: "Indisciplina detectada, $. Você quebrou o padrão hoje." },
     'investidor': { morning: "seu tempo é o ativo mais escasso. Aloque-o com precisão.", afternoon: "não desperdice capital intelectual com distrações baratas.", night_win: "Patrimônio mental em alta, $. Ótimo fechamento de dia.", night_loss: "Você queimou seu tempo em futilidades, $. Prejuízo total." },
@@ -24,12 +24,11 @@ const mindsetVoices = {
 };
 
 /**
- * SINCRONIA REATIVA (Chamada pelo app.js)
+ * SINCRONIA REATIVA
+ * Chamada pelo app.js ao abrir ou marcar/desmarcar tarefas.
  */
 window.sincronizarMindsetOneSignal = (user) => {
     if (!user) return;
-    
-    // Fallback de ID caso o UID não exista no objeto
     const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
     if (!targetId) return;
 
@@ -37,70 +36,80 @@ window.sincronizarMindsetOneSignal = (user) => {
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
             await OneSignal.login(targetId);
-
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
-            const total = (user.dailyTaskIds || []).length;
-            const feitas = (user.completedTodayIds || []).length;
-            const pendentes = total - feitas;
+            const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
             const hora = new Date().getHours();
             
-            let marmita = "";
-            if (hora >= 5 && hora < 12) marmita = `${user.nome}, ${voice.morning}`;
-            else if (hora >= 12 && hora < 18) marmita = `${user.nome}, ${voice.afternoon}`;
-            else marmita = (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
+            let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
+                          (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
+                          (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
             await OneSignal.User.addTags({
                 "overall": String(marmita),
-                "pendentes": String(pendentes),
-                "uid": String(targetId)
+                "uid": String(targetId),
+                "pendentes": String(pendentes)
             });
             console.log("🔄 Sincronizado para ID:", targetId);
-        } catch (e) {
-            console.warn("Falha na sincronia:", e);
-        }
+        } catch (e) { console.warn("Erro na sincronia:", e); }
     });
 };
 
 /**
- * RECOMPILAR ALERTAS (Botão do Menu)
+ * ATIVAR NOTIFICAÇÕES (Hard Reset + Popup + Modais)
  */
 window.ativarNotificacoesManual = async () => {
-    console.log("🚀 Solicitando permissão OneSignal...");
+    console.log("🧨 Iniciando Hard Reset de Notificações...");
     
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
+    const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : 'user_sem_id');
 
-    // Validação de ID para evitar erro "externalId is empty"
-    const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+    // 1. LIMPEZA PROFUNDA (Força o popup a reaparecer)
+    try {
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let reg of registrations) {
+                if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
+                    await reg.unregister();
+                    console.log("🗑️ SW OneSignal removido.");
+                }
+            }
+        }
+        ['OneSignalSDK', 'OneSignalSDK_IDB'].forEach(db => indexedDB.deleteDatabase(db));
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
+        });
+    } catch (err) { console.warn("Erro na limpeza:", err); }
 
-    if (!targetId) {
-        console.error("❌ Erro: ID de vínculo não encontrado.");
-        if (window.showModal) window.showModal("ERRO", "Perfil incompleto. Tente reiniciar o app.");
-        return;
-    }
-
+    // 2. DISPARO DO ONESIGNAL
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            console.log("🔑 Vinculando ID:", targetId);
-            await OneSignal.login(targetId);
-
-            const permission = await OneSignal.Notifications.permission;
-            
-            if (permission === "denied") {
-                if (window.showModal) window.showModal("BLOQUEADO", "Permissões negadas. Limpe as configurações do seu navegador.");
-                return;
-            }
-
+            await OneSignal.User.PushSubscription.optOut();
             await OneSignal.Notifications.requestPermission();
             
-            // Força sincronia após pedido de permissão
-            window.sincronizarMindsetOneSignal(user);
+            const permission = await OneSignal.Notifications.permission;
 
-            if (window.showModal) window.showModal("SISTEMA", "Verifique se o navegador solicitou permissão.");
+            if (permission === "granted") {
+                await OneSignal.login(targetId);
+                window.sincronizarMindsetOneSignal(user);
+                
+                if (window.showModal) {
+                    window.showModal("SISTEMA", "Notificações ativadas com sucesso! Seu MindSet agora está conectado.");
+                }
+            } else if (permission === "denied") {
+                if (window.showModal) {
+                    window.showModal("AÇÃO NECESSÁRIA", "As notificações foram bloqueadas. Clique no ícone de cadeado na barra de endereços para permitir manualmente.");
+                }
+            } else {
+                if (window.showModal) {
+                    window.showModal("AVISO", "A ativação não foi concluída. Por favor, aceite a permissão no popup do navegador.");
+                }
+            }
         } catch (e) {
-            console.error("Erro manual OneSignal:", e);
+            console.error("Erro na ativação:", e);
+            if (window.showModal) window.showModal("FALHA CRÍTICA", "Houve uma falha ao tentar ativar as notificações.");
         }
     });
 };
