@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v12.7
- * Foco: Script Literal de Reset + Modal de Sucesso + Lógica de Marmita
+ * MINDSET - NOTIFICATIONS ENGINE v12.9
+ * Foco: Sincronia Firebase + Script Literal de Reset + Marmita
  */
 
 const mindsetVoices = {
@@ -24,95 +24,102 @@ const mindsetVoices = {
 };
 
 /**
- * LÓGICA DA MARMITA (Continua aqui!)
+ * SINCRONIZAÇÃO TOTAL (OneSignal + Firebase)
  */
-window.sincronizarMindsetOneSignal = (user) => {
-    if (!user) return;
-    const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
-    if (!targetId) return;
+window.sincronizarMindsetOneSignal = async (user) => {
+    if (!user || !user.uid) return;
 
+    const targetId = user.uid;
+    const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
+    const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
+    const hora = new Date().getHours();
+    
+    // CONSTRUÇÃO DA MARMITA
+    let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
+                  (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
+                  (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
+
+    // 1. ATUALIZA NO ONESIGNAL
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
             await OneSignal.login(targetId);
-            const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
-            const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
-            const hora = new Date().getHours();
-            
-            // CONSTRUÇÃO DA MARMITA
-            let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
-                          (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
-                          (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
-
             await OneSignal.User.addTags({
                 "overall": String(marmita),
                 "uid": String(targetId),
                 "pendentes": String(pendentes)
             });
-            console.log("🔄 Sincronizado para ID:", targetId);
-        } catch (e) { console.warn("Erro na sincronia:", e); }
+            console.log("🔄 OneSignal Sincronizado.");
+        } catch (e) { console.error("Erro OneSignal Tags:", e); }
     });
+
+    // 2. ATUALIZA NO FIREBASE (Para o Workflow do GitHub ler)
+    try {
+        if (window.db) {
+            const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+            const userRef = doc(window.db, "users", targetId);
+            await updateDoc(userRef, {
+                setup: user.setup,
+                nome: user.nome,
+                pendentes: pendentes,
+                marmitaAtual: marmita,
+                lastSync: new Date().toISOString()
+            });
+            console.log("🔥 Firebase Atualizado.");
+        }
+    } catch (e) { console.warn("Erro Firebase Sync:", e); }
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (O SEU SCRIPT LITERAL)
+ * ATIVAR NOTIFICAÇÕES (Script de Reset + Sincronia)
  */
 window.ativarNotificacoesManual = async () => {
-    (async () => {
-        console.log("🧨 INICIANDO EXPLOSÃO DE CACHE DE NOTIFICAÇÕES...");
+    if (window.showModal) {
+        window.showModal("SISTEMA", "Configurando alertas... Clique em 'OK' e autorize no navegador.");
+    }
 
-        // 1. Desregistrar todos os Service Workers relacionados ao OneSignal
+    (async () => {
+        console.log("🧨 INICIANDO EXPLOSÃO DE CACHE...");
+
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let reg of registrations) {
-                if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
-                    await reg.unregister();
-                    console.log("🗑️ Service Worker do OneSignal removido.");
-                }
+                if (reg.active && reg.active.scriptURL.includes('OneSignal')) await reg.unregister();
             }
         }
 
-        // 2. Deletar os bancos de dados IndexedDB que o OneSignal usa
         const databases = ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'];
         databases.forEach(dbName => {
-            const req = indexedDB.deleteDatabase(dbName);
-            req.onsuccess = () => console.log(`✅ Banco ${dbName} deletado com sucesso.`);
-            req.onerror = () => console.error(`❌ Erro ao deletar banco ${dbName}.`);
-            req.onblocked = () => console.warn(`⚠️ Banco ${dbName} bloqueado (feche outras abas).`);
+            indexedDB.deleteDatabase(dbName);
         });
 
-        // 3. Limpar LocalStorage e SessionStorage do OneSignal
         Object.keys(localStorage).forEach(key => {
-            if (key.includes('os_ls_') || key.includes('OneSignal')) {
-                localStorage.removeItem(key);
-            }
+            if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
         });
-        console.log("🧹 LocalStorage limpo.");
 
-        // 4. Resetar o estado do SDK e pedir permissão do zero
-        console.log("🚀 Reiniciando SDK e disparando Popup...");
-        
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         window.OneSignalDeferred.push(async function(OneSignal) {
             try {
                 await OneSignal.User.PushSubscription.optOut(); 
                 await OneSignal.Notifications.requestPermission();
                 
-                console.log("🔔 Popup disparado! Verifique o topo da tela.");
-                
-                // Feedback visual: Modal de sucesso quando der certo
-                setTimeout(async () => {
+                const checkInterval = setInterval(async () => {
                     const permission = await OneSignal.Notifications.permission;
                     if (permission === "granted") {
-                        if (window.showModal) window.showModal("SUCESSO", "Notificações ativadas!");
+                        clearInterval(checkInterval);
+                        
                         const raw = localStorage.getItem('mindset_data');
-                        if (raw) window.sincronizarMindsetOneSignal(JSON.parse(raw));
-                    }
-                }, 1500);
+                        if (raw) {
+                            const userData = JSON.parse(raw);
+                            await window.sincronizarMindsetOneSignal(userData);
+                        }
 
-            } catch (e) {
-                console.error("Erro ao solicitar popup:", e);
-            }
+                        if (window.showModal) window.showModal("SUCESSO", "Notificações ativadas!");
+                    } else if (permission === "denied") {
+                        clearInterval(checkInterval);
+                    }
+                }, 1000);
+            } catch (e) { console.error(e); }
         });
     })();
 };
