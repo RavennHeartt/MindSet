@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v13.8
- * ARQUIVO INTEGRAL: Identity Persistence + Fix PWA Chrome + Reset + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v14.0
+ * ARQUIVO INTEGRAL: Resiliência Total de ID + Fix PWA Chrome/Firefox + Firebase Sync
  */
 
 const mindsetVoices = {
@@ -23,15 +23,16 @@ const mindsetVoices = {
     'devota': { morning: "Consagre suas horas. O propósito hoje é:", afternoon: "Mantenha a constância no dever, sem desviar o olhar.", night_win: "Espírito fortalecido e dever cumprido, $. Siga firme.", night_loss: "Você cedeu às tentações da preguiça, $. Sua base fraquejou." }
 };
 
-/**
- * SINCRONIZAÇÃO RESILIENTE
- */
-window.sincronizarMindsetOneSignal = async (user) => {
-    // Reconstrução do UID por slug (nome_do_usuario) se nada mais existir
-    const uid = user?.uid || 
-                localStorage.getItem('mindset_uid') || 
-                (user?.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+// Função auxiliar para encontrar o ID não importa o que aconteça
+const findUID = (data) => {
+    return data?.uid || 
+           localStorage.getItem('mindset_uid') || 
+           (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null) ||
+           (window.userData?.nome ? window.userData.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+};
 
+window.sincronizarMindsetOneSignal = async (user) => {
+    const uid = findUID(user);
     if (!uid) return;
     localStorage.setItem('mindset_uid', uid);
 
@@ -47,13 +48,13 @@ window.sincronizarMindsetOneSignal = async (user) => {
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
             await OneSignal.login(uid);
-            await OneSignal.User.addTags({
-                "overall": String(marmita),
-                "uid": String(uid),
-                "pendentes": String(pendentes),
-                "last_app_sync": new Date().toISOString()
-            });
-            console.log("✅ Tags sincronizadas para: " + uid);
+            setTimeout(async () => {
+                await OneSignal.User.addTags({
+                    "overall": String(marmita),
+                    "uid": String(uid),
+                    "pendentes": String(pendentes)
+                });
+            }, 1000);
         } catch (e) { console.error("Erro OneSignal Tags:", e); }
     });
 
@@ -67,30 +68,25 @@ window.sincronizarMindsetOneSignal = async (user) => {
     } catch (e) {}
 };
 
-/**
- * ATIVAR NOTIFICAÇÕES (BLINDAGEM DE IDENTIDADE)
- */
 window.ativarNotificacoesManual = async () => {
-    // 1. CAPTURA DE IDENTIDADE ANTES DA EXPLOSÃO
-    const raw = localStorage.getItem('mindset_data');
-    const backupData = raw ? JSON.parse(raw) : null;
-    const backupUid = backupData?.uid || localStorage.getItem('mindset_uid') || (backupData?.nome ? backupData.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+    // CAPTURA DE SEGURANÇA ANTES DO RESET
+    const rawPre = localStorage.getItem('mindset_data');
+    const dataPre = rawPre ? JSON.parse(rawPre) : (window.userData || null);
+    const uidPre = findUID(dataPre);
 
-    if (window.showModal) window.showModal("SISTEMA", "Reiniciando conexão de alertas...");
+    if (window.showModal) window.showModal("SISTEMA", "Resetando drivers de notificação...");
 
     (async () => {
-        console.log("🧨 EXPLODINDO CACHE COM BACKUP DE ID:", backupUid);
-
         if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             for (let reg of regs) { if (reg.active && reg.active.scriptURL.includes('OneSignal')) await reg.unregister(); }
         }
-
         ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'].forEach(db => indexedDB.deleteDatabase(db));
         
-        // Limpa OneSignal mas RECOLOCO o UID essencial logo depois
         Object.keys(localStorage).forEach(key => { if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key); });
-        if (backupUid) localStorage.setItem('mindset_uid', backupUid);
+        
+        // REINJETA O UID PARA O CALLBACK NÃO FICAR VAZIO
+        if (uidPre) localStorage.setItem('mindset_uid', uidPre);
 
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         window.OneSignalDeferred.push(async function(OneSignal) {
@@ -99,25 +95,24 @@ window.ativarNotificacoesManual = async () => {
                 await OneSignal.User.PushSubscription.optIn();
                 await OneSignal.Notifications.requestPermission();
                 
-                const checkInterval = setInterval(async () => {
+                const check = setInterval(async () => {
                     if (Notification.permission === "granted") {
-                        clearInterval(checkInterval);
+                        clearInterval(check);
                         
-                        // Busca o ID do backup se o localStorage falhar no callback
-                        const finalUid = backupUid || localStorage.getItem('mindset_uid');
+                        const rawPost = localStorage.getItem('mindset_data');
+                        const dataPost = rawPost ? JSON.parse(rawPost) : dataPre;
+                        const uidPost = findUID(dataPost);
 
-                        if (finalUid) {
-                            await OneSignal.login(finalUid);
-                            if (backupData) {
-                                await window.sincronizarMindsetOneSignal(backupData);
-                            }
+                        if (uidPost) {
+                            await OneSignal.login(uidPost);
+                            if (dataPost) await window.sincronizarMindsetOneSignal(dataPost);
                             if (window.showModal) window.showModal("SUCESSO", "Conectado com sucesso!");
                         } else {
-                            console.error("❌ Erro Crítico Persistente: Sem ID.");
+                            console.error("❌ Erro: UID não recuperado.");
                         }
-                    } else if (Notification.permission === "denied") { clearInterval(checkInterval); }
+                    } else if (Notification.permission === "denied") { clearInterval(check); }
                 }, 1000);
-            } catch (e) { console.error("Erro OneSignal:", e); }
+            } catch (e) { console.error(e); }
         });
     })();
 };
