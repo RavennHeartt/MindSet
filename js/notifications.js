@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v12.3
- * Foco: UX (Feedback Visual Imediato) + Hard Reset + Sincronia Total
+ * MINDSET - NOTIFICATIONS ENGINE v12.4
+ * Foco: Hard Reset (Script do Eruda Integrado) + UX Amigável
  */
 
 const mindsetVoices = {
@@ -48,49 +48,59 @@ window.sincronizarMindsetOneSignal = (user) => {
                 "uid": String(targetId),
                 "pendentes": String(pendentes)
             });
-        } catch (e) { console.warn("Erro na sincronia reativa:", e); }
+        } catch (e) { console.warn("Erro na sincronia:", e); }
     });
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (Double Prompt + Hard Reset)
+ * ATIVAR NOTIFICAÇÕES (O Script que funcionou no Eruda)
  */
 window.ativarNotificacoesManual = async () => {
-    // 1. Feedback Visual Imediato para o usuário
+    // Feedback amigável inicial
     if (window.showModal) {
-        window.showModal("CONFIGURANDO", "Preparando conexão... Clique em 'OK' e, em seguida, selecione 'Permitir' na janela que o seu navegador abrir.");
+        window.showModal("SISTEMA", "Preparando sua conexão de alertas. Clique em 'OK' e autorize o acesso na janela do seu navegador a seguir.");
     }
-    console.log("🚀 Iniciando limpeza e pedido de permissão...");
 
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
     const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : 'user_sem_id');
 
-    // 2. LIMPEZA PROFUNDA DE CHOQUE
-    try {
-        if ('serviceWorker' in navigator) {
+    // 1. Desregistrar Service Workers (Idêntico ao script do Eruda)
+    if ('serviceWorker' in navigator) {
+        try {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let reg of registrations) {
-                if (reg.active && reg.active.scriptURL.includes('OneSignal')) await reg.unregister();
+                if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
+                    await reg.unregister();
+                }
             }
-        }
-        ['OneSignalSDK', 'OneSignalSDK_IDB'].forEach(db => indexedDB.deleteDatabase(db));
-        Object.keys(localStorage).forEach(key => {
-            if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
-        });
-    } catch (err) { console.warn("Erro na limpeza de cache:", err); }
+        } catch (swErr) { console.warn("SW Cleanup:", swErr); }
+    }
 
-    // 3. DISPARO DO ONESIGNAL
+    // 2. Deletar IndexedDB (Idêntico ao script do Eruda)
+    const databases = ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'];
+    databases.forEach(dbName => {
+        try { indexedDB.deleteDatabase(dbName); } catch (e) {}
+    });
+
+    // 3. Limpar LocalStorage e SessionStorage (Idêntico ao script do Eruda)
+    Object.keys(localStorage).forEach(key => {
+        if (key.includes('os_ls_') || key.includes('OneSignal')) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    // 4. Resetar SDK e pedir permissão
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            await OneSignal.User.PushSubscription.optOut();
+            await OneSignal.User.PushSubscription.optOut(); 
             
-            // Dispara o popup nativo do navegador
+            // Dispara o Popup Nativo
             await OneSignal.Notifications.requestPermission();
             
-            // Pequeno delay para o navegador processar a resposta
+            // Aguarda a resposta do usuário
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             const permission = await OneSignal.Notifications.permission;
@@ -102,16 +112,18 @@ window.ativarNotificacoesManual = async () => {
                 window.sincronizarMindsetOneSignal(user);
                 
                 if (window.showModal) {
-                    window.showModal("SUCESSO", "Conexão estabelecida! Suas notificações foram ativadas.");
+                    window.showModal("SUCESSO", "Notificações ativadas! Você receberá seus alertas a partir de agora.");
                 }
             } else if (permission === "denied") {
                 if (window.showModal) {
-                    window.showModal("AÇÃO NECESSÁRIA", "As notificações estão bloqueadas. Clique no cadeado da barra de endereços para permitir manualmente.");
+                    window.showModal("AÇÃO NECESSÁRIA", "As notificações foram bloqueadas nas configurações do seu navegador. Por favor, libere-as no ícone de cadeado.");
                 }
             }
         } catch (e) {
-            console.error("Erro na ativação:", e);
-            if (window.showModal) window.showModal("SISTEMA", "Falha na comunicação com o servidor de alertas.");
+            console.error("Erro OneSignal:", e);
+            if (window.showModal) {
+                window.showModal("ERRO", "Não foi possível completar a ativação. Verifique sua conexão.");
+            }
         }
     });
 };
