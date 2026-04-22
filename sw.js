@@ -1,8 +1,10 @@
-// 1. IMPORTAÇÃO DO ONESIGNAL (Sempre no topo)
-importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+/**
+ * MINDSET - SERVICE WORKER (LIGHT VERSION)
+ * Focado em performance sem quebrar OneSignal/Firebase
+ */
 
-const CACHE_NAME = 'mindset-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'mindset-v2';
+const ASSETS = [
     './',
     './index.html',
     './app.html',
@@ -11,72 +13,28 @@ const ASSETS_TO_CACHE = [
     './js/main.js',
     './js/app.js',
     './js/notifications.js',
-    './manifest.json',
-    './assets/icone-ios.png',
-    './assets/icone-192.png',
-    './assets/icone-512.png'
+    './manifest.json'
 ];
 
-let dailyConfig = null;
-
-// INSTALAÇÃO: Cache de arquivos
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
-    );
+self.addEventListener('install', e => {
+    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
     self.skipWaiting();
 });
 
-// ATIVAÇÃO: Limpeza de caches antigos
-self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(keys => {
-            return Promise.all(
-                keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-            );
-        })
-    );
+self.addEventListener('activate', e => {
+    e.waitUntil(caches.keys().then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    )));
     self.clients.claim();
 });
 
-// ESTRATÉGIA FETCH: Stale-While-Revalidate
+// REMOVEMOS A INTERCEPÇÃO DE FETCH COMPLEXA
+// Isso evita o erro de "Content-Length header exceeds response Body"
 self.addEventListener('fetch', event => {
-    if (event.request.url.includes('onesignal') || event.request.url.includes('firebase')) return;
-
+    // Não interfere em requisições de API ou CDN externo
+    if (!event.request.url.startsWith(self.location.origin)) return;
+    
     event.respondWith(
-        caches.match(event.request).then(cachedResponse => {
-            const fetchPromise = fetch(event.request).then(networkResponse => {
-                if (networkResponse && networkResponse.status === 200) {
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, networkResponse.clone());
-                    });
-                }
-                return networkResponse;
-            });
-            return cachedResponse || fetchPromise;
-        })
+        caches.match(event.request).then(res => res || fetch(event.request))
     );
 });
-
-// COMUNICAÇÃO E SINCRONIZAÇÃO LOCAL
-self.addEventListener('message', event => {
-    if (event.data.type === 'SET_DAILY_CONFIG') dailyConfig = event.data.config;
-});
-
-self.addEventListener('periodicsync', event => {
-    if (event.tag === 'check-tasks') event.waitUntil(checkAndSend());
-});
-
-async function checkAndSend() {
-    if (!dailyConfig) return;
-    const agora = new Date();
-    const h = agora.getHours();
-    if (h < 8 || h > 22) return;
-
-    // Notificação local simples se o app estiver aberto/background
-    await self.registration.showNotification("MINDSET", {
-        body: "Verifique suas missões de hoje.",
-        icon: 'assets/icone-192.png',
-        tag: 'mindset-local'
-    });
-}

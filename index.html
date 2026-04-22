@@ -128,14 +128,17 @@
     <script src="js/main.js"></script>
 
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            // Unificamos o registro aqui
-            navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log("SW MindSet Ativo"))
-              .catch(err => console.error("Erro SW:", err));
-        });
-      }
-    </script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        // 1. Registro do App
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log("SW App Ativo"));
+
+        // 2. Registro Exclusivo do OneSignal
+        navigator.serviceWorker.register('./OneSignalSDKWorker.js')
+          .then(reg => console.log("SW OneSignal Ativo"));
+    });
+  }
+</script>
 </body>
 </html>
