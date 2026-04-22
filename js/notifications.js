@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v12.0
- * Foco: Hard Reset de Cache + Disparo de Popup + Feedback via Modais
+ * MINDSET - NOTIFICATIONS ENGINE v12.1
+ * Foco: Hard Reset de Cache + Forçar Popup Nativo + Feedback Reativo
  */
 
 const mindsetVoices = {
@@ -25,7 +25,6 @@ const mindsetVoices = {
 
 /**
  * SINCRONIA REATIVA
- * Chamada pelo app.js ao abrir ou marcar/desmarcar tarefas.
  */
 window.sincronizarMindsetOneSignal = (user) => {
     if (!user) return;
@@ -49,30 +48,28 @@ window.sincronizarMindsetOneSignal = (user) => {
                 "uid": String(targetId),
                 "pendentes": String(pendentes)
             });
-            console.log("🔄 Sincronizado para ID:", targetId);
         } catch (e) { console.warn("Erro na sincronia:", e); }
     });
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (Hard Reset + Popup + Modais)
+ * ATIVAR NOTIFICAÇÕES (Hard Reset + Popup Nativo)
  */
 window.ativarNotificacoesManual = async () => {
-    console.log("🧨 Iniciando Hard Reset de Notificações...");
+    console.log("🚀 Iniciando processo para forçar popup de permissão...");
     
     const raw = localStorage.getItem('mindset_data');
     if (!raw) return;
     const user = JSON.parse(raw);
     const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : 'user_sem_id');
 
-    // 1. LIMPEZA PROFUNDA (Força o popup a reaparecer)
+    // 1. LIMPEZA DE CHOQUE (Remove registros antigos do navegador)
     try {
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let reg of registrations) {
                 if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
                     await reg.unregister();
-                    console.log("🗑️ SW OneSignal removido.");
                 }
             }
         }
@@ -80,36 +77,42 @@ window.ativarNotificacoesManual = async () => {
         Object.keys(localStorage).forEach(key => {
             if (key.includes('os_ls_') || key.includes('OneSignal')) localStorage.removeItem(key);
         });
-    } catch (err) { console.warn("Erro na limpeza:", err); }
+    } catch (err) { console.warn("Erro na limpeza de cache:", err); }
 
-    // 2. DISPARO DO ONESIGNAL
+    // 2. DISPARO DO PROMPT NATIVO
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
+            // Garante que o SDK ignore sessões anteriores
             await OneSignal.User.PushSubscription.optOut();
+            
+            // DISPARA O POPUP NATIVO DO NAVEGADOR
             await OneSignal.Notifications.requestPermission();
             
             const permission = await OneSignal.Notifications.permission;
 
             if (permission === "granted") {
+                // Se aceitou, loga e força a subscrição ativa
                 await OneSignal.login(targetId);
+                await OneSignal.User.PushSubscription.optIn(); 
+                
                 window.sincronizarMindsetOneSignal(user);
                 
                 if (window.showModal) {
-                    window.showModal("SISTEMA", "Notificações ativadas com sucesso! Seu MindSet agora está conectado.");
+                    window.showModal("SISTEMA", "Notificações ativadas com sucesso!");
                 }
             } else if (permission === "denied") {
                 if (window.showModal) {
-                    window.showModal("AÇÃO NECESSÁRIA", "As notificações foram bloqueadas. Clique no ícone de cadeado na barra de endereços para permitir manualmente.");
-                }
-            } else {
-                if (window.showModal) {
-                    window.showModal("AVISO", "A ativação não foi concluída. Por favor, aceite a permissão no popup do navegador.");
+                    window.showModal("AÇÃO NECESSÁRIA", "Você bloqueou as notificações. Limpe as permissões no ícone de cadeado do navegador.");
                 }
             }
+            // Se fechar o popup sem clicar, o sistema não faz nada (espera nova tentativa)
+            
         } catch (e) {
-            console.error("Erro na ativação:", e);
-            if (window.showModal) window.showModal("FALHA CRÍTICA", "Houve uma falha ao tentar ativar as notificações.");
+            console.error("Erro ao tentar disparar popup:", e);
+            if (window.showModal) {
+                window.showModal("FALHA CRÍTICA", "Houve um erro ao tentar abrir o painel de permissões.");
+            }
         }
     });
 };
