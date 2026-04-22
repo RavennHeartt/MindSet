@@ -1,7 +1,4 @@
-/**
- * MINDSET - NOTIFICATIONS ENGINE v12.5
- * Foco: Execução Direta (Script Eruda) para evitar bloqueio de popup
- */
+console.log("✅ Ficheiro notifications.js carregado com sucesso!");
 
 const mindsetVoices = {
     'patriarca': { morning: "a fundação da sua linhagem hoje depende da sua ordem.", afternoon: "um líder mantém a visão clara enquanto executa o necessário.", night_win: "Dever cumprido, $. A linhagem está segura sob sua guarda.", night_loss: "Você falhou com sua autoridade hoje, $. A desordem enfraquece seu legado." },
@@ -43,31 +40,33 @@ window.sincronizarMindsetOneSignal = (user) => {
 };
 
 /**
- * ATIVAR NOTIFICAÇÕES (Script Exato do Eruda)
+ * ATIVAR NOTIFICAÇÕES (Sincronizado com o clique do utilizador)
  */
-window.ativarNotificacoesManual = async () => {
-    // 1. Log inicial para o Eruda do programador
+window.ativarNotificacoesManual = async function() {
+    // ESTE É O SCRIPT DO ERUDA ADAPTADO
     console.log("🧨 INICIANDO EXPLOSÃO DE CACHE DE NOTIFICAÇÕES...");
 
-    // 2. Desregistrar Service Workers (Exatamente como o seu script)
+    // 1. Service Workers
     if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let reg of registrations) {
-            if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
-                await reg.unregister();
-                console.log("🗑️ Service Worker do OneSignal removido.");
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let reg of registrations) {
+                if (reg.active && reg.active.scriptURL.includes('OneSignal')) {
+                    await reg.unregister();
+                    console.log("🗑️ Service Worker removido.");
+                }
             }
-        }
+        } catch (e) { console.error(e); }
     }
 
-    // 3. Deletar Bancos IndexedDB (Exatamente como o seu script)
+    // 2. IndexedDB
     const databases = ['OneSignalSDK', 'OneSignalSDK_IDB', 'next-auth.pkce.state'];
     databases.forEach(dbName => {
-        const req = indexedDB.deleteDatabase(dbName);
-        req.onsuccess = () => console.log(`✅ Banco ${dbName} deletado com sucesso.`);
+        indexedDB.deleteDatabase(dbName);
+        console.log(`✅ Tentativa de deletar banco: ${dbName}`);
     });
 
-    // 4. Limpar Storages (Exatamente como o seu script)
+    // 3. LocalStorage
     Object.keys(localStorage).forEach(key => {
         if (key.includes('os_ls_') || key.includes('OneSignal')) {
             localStorage.removeItem(key);
@@ -75,32 +74,27 @@ window.ativarNotificacoesManual = async () => {
     });
     console.log("🧹 LocalStorage limpo.");
 
-    // 5. Reiniciar SDK e Pedir Permissão
+    // 4. OneSignal Prompt
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
-            console.log("🚀 Reiniciando SDK e disparando Popup...");
+            console.log("🚀 Disparando Popup Nativo...");
             await OneSignal.User.PushSubscription.optOut(); 
-            
-            // DISPARO DO POPUP NATIVO
             await OneSignal.Notifications.requestPermission();
             
-            console.log("🔔 Popup disparado!");
-
-            // Feedback Visual amigável apenas APÓS o disparo do popup
-            const permission = await OneSignal.Notifications.permission;
-            if (permission === "granted") {
-                const raw = localStorage.getItem('mindset_data');
-                if(raw) window.sincronizarMindsetOneSignal(JSON.parse(raw));
-                if (window.showModal) window.showModal("SUCESSO", "As notificações foram configuradas com sucesso!");
-            } else if (permission === "denied") {
-                if (window.showModal) window.showModal("AVISO", "As notificações estão bloqueadas no navegador. Verifique o cadeado na barra de endereços.");
-            }
+            // Verificação de Sucesso Amigável
+            setTimeout(async () => {
+                const permission = await OneSignal.Notifications.permission;
+                if (permission === "granted") {
+                    if (window.showModal) window.showModal("SUCESSO", "Conexão ativada! Você já pode receber os seus alertas.");
+                }
+            }, 2000);
 
         } catch (e) {
-            console.error("Erro ao solicitar popup:", e);
+            console.error("Erro no OneSignal:", e);
         }
     });
 };
 
+// Aliases para garantir que o botão encontre a função
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
