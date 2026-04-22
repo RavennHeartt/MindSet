@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v12.6
- * Foco: Execução Literal do Script de Explosão de Cache
+ * MINDSET - NOTIFICATIONS ENGINE v12.7
+ * Foco: Script Literal de Reset + Modal de Sucesso + Lógica de Marmita
  */
 
 const mindsetVoices = {
@@ -23,10 +23,14 @@ const mindsetVoices = {
     'minimalista': { morning: "ignore o ruído e foque apenas no que é essencial.", afternoon: "simplicidade é o último grau da sofisticação. Execute.", night_win: "Clareza absoluta e dia leve, $. Essencial cumprido.", night_loss: "Você se perdeu no excesso e no nada, $. Dia desperdiçado." }
 };
 
+/**
+ * LÓGICA DA MARMITA (Continua aqui!)
+ */
 window.sincronizarMindsetOneSignal = (user) => {
     if (!user) return;
     const targetId = user.uid || (user.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
     if (!targetId) return;
+
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
@@ -34,20 +38,26 @@ window.sincronizarMindsetOneSignal = (user) => {
             const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
             const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
             const hora = new Date().getHours();
+            
+            // CONSTRUÇÃO DA MARMITA
             let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
                           (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                           (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
-            await OneSignal.User.addTags({ "overall": String(marmita), "uid": String(targetId), "pendentes": String(pendentes) });
-        } catch (e) {}
+
+            await OneSignal.User.addTags({
+                "overall": String(marmita),
+                "uid": String(targetId),
+                "pendentes": String(pendentes)
+            });
+            console.log("🔄 Sincronizado para ID:", targetId);
+        } catch (e) { console.warn("Erro na sincronia:", e); }
     });
 };
 
 /**
- * FUNÇÃO VINCULADA AO BOTÃO
+ * ATIVAR NOTIFICAÇÕES (O SEU SCRIPT LITERAL)
  */
 window.ativarNotificacoesManual = async () => {
-    
-    // O SCRIPT EXATO QUE VOCÊ SOLICITOU:
     (async () => {
         console.log("🧨 INICIANDO EXPLOSÃO DE CACHE DE NOTIFICAÇÕES...");
 
@@ -85,23 +95,20 @@ window.ativarNotificacoesManual = async () => {
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         window.OneSignalDeferred.push(async function(OneSignal) {
             try {
-                // Isso "limpa" a memória do SDK na sessão atual
                 await OneSignal.User.PushSubscription.optOut(); 
-                
-                // AGORA SIM: O comando para forçar o popup nativo
                 await OneSignal.Notifications.requestPermission();
                 
                 console.log("🔔 Popup disparado! Verifique o topo da tela.");
                 
-                // Feedback amigável para o usuário comum em vez do alert técnico
+                // Feedback visual: Modal de sucesso quando der certo
                 setTimeout(async () => {
                     const permission = await OneSignal.Notifications.permission;
-                    if (permission === "granted" && window.showModal) {
-                        window.showModal("SUCESSO", "Notificações ativadas com sucesso!");
+                    if (permission === "granted") {
+                        if (window.showModal) window.showModal("SUCESSO", "Notificações ativadas!");
                         const raw = localStorage.getItem('mindset_data');
                         if (raw) window.sincronizarMindsetOneSignal(JSON.parse(raw));
                     }
-                }, 1000);
+                }, 1500);
 
             } catch (e) {
                 console.error("Erro ao solicitar popup:", e);
