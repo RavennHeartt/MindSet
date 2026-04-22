@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v14.1
- * ARQUIVO INTEGRAL: Login Promise + Fix Op Failed + Firebase Sync
+ * MINDSET - NOTIFICATIONS ENGINE v14.4
+ * ARQUIVO INTEGRAL: Event-Driven Sync + Fix Op Failed + Firebase
  */
 
 const mindsetVoices = {
@@ -8,7 +8,7 @@ const mindsetVoices = {
     'matriarca': { morning: "O lar prospera sob sua ordem. Reflita:", afternoon: "O equilíbrio da família exige sua atenção constante aos detalhes.", night_win: "Gestão impecável, $. Sua casa e sua linhagem estão em harmonia.", night_loss: "A negligência de hoje cobrará seu preço amanhã, $." },
     'cavalheiro': { morning: "A honra precede a ação. Sua bússola hoje é:", afternoon: "A etiqueta exige que suas obrigações sejam tratadas com prioridade.", night_win: "Um dia de conduta exemplar, $. Você honrou sua palavra.", night_loss: "Sua falta de disciplina manchou sua reputação hoje, $." },
     'dama': { morning: "Sua postura define o tom do dia. Veja:", afternoon: "Governe suas ações com a classe de quem conhece o próprio valor.", night_win: "Vitória e maestria, $. Você dominou o dia com elegância.", night_loss: "A procrastinação ofuscou seu brilho hoje, $. Retome a postura." },
-    'ceo_ele': { morning: "O mercado abriu. Sua estratégia hoje é:", afternoon: "Performance é o único KPI que importa agora. Execute!", night_win: "Alta performance confirmed, $. Lucro máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
+    'ceo_ele': { morning: "O mercado abriu. Sua estratégia hoje é:", afternoon: "Performance é o único KPI que importa agora. Execute!", night_win: "Alta performance confirmada, $. Lucro máximo.", night_loss: "Resultados inaceitáveis, $. Você operou em prejuízo hoje." },
     'ceo_ela': { morning: "Liderança é ação. Seu comando hoje é:", afternoon: "Estratégia sem execução é alucinação. Foque no que importa.", night_win: "Visão estratégica concluída, $. Você liderou com sucesso.", night_loss: "Déficit de produtividade, $. Sua gestão foi falha hoje." },
     'militar_ele': { morning: "ALVORADA! Assuma o seu posto. Sua doutrina hoje é:", afternoon: "O inimigo é disciplinado e não descansa. Mantenha o padrão!", night_win: "Missão cumprida, $. Padrão mantido. Descanso autorizado.", night_loss: "Fracasso operacional por negligência, $. Durma com isso." },
     'militar_ela': { morning: "ALVORADA! Estabeleça as prioridades. A diretriz é:", afternoon: "O terreno é hostil para os indisciplinados. Mantenha o foco.", night_win: "Objetivos atingidos, $. Comando respeitado. Excelente.", night_loss: "Indisciplina detectada, $. Você quebrou o padrão hoje." },
@@ -25,15 +25,11 @@ const mindsetVoices = {
 
 const findUID = (data) => {
     return data?.uid || localStorage.getItem('mindset_uid') || 
-           (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null) ||
-           (window.userData?.nome ? window.userData.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+           (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
 };
 
-
 window.sincronizarMindsetOneSignal = async (user) => {
-    const uid = user?.uid || localStorage.getItem('mindset_uid') || 
-                (user?.nome ? user.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
-
+    const uid = findUID(user);
     if (!uid) return;
     localStorage.setItem('mindset_uid', uid);
 
@@ -48,19 +44,32 @@ window.sincronizarMindsetOneSignal = async (user) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
         try {
+            // 1. Iniciamos o login
             await OneSignal.login(uid);
-            // Agora o delay pode ser menor, pois não há conflito de SW
-            setTimeout(async () => {
-                await OneSignal.User.addTags({
-                    "overall": String(marmita),
-                    "uid": String(uid),
-                    "pendentes": String(pendentes)
-                });
-                console.log("✅ Tags sincronizadas via Canal Limpo.");
-            }, 800);
+            console.log("🔑 Tentativa de login enviada para:", uid);
+
+            // 2. A MÁGICA: Escutamos a mudança de estado do usuário
+            // Só enviamos as tags quando o OneSignalId e o ExternalId (uid) estão consolidados
+            OneSignal.User.addEventListener('change', async () => {
+                const isReady = 
+                    OneSignal.User.onesignalId && 
+                    OneSignal.User.externalId === uid &&
+                    OneSignal.User.PushSubscription.id;
+
+                if (isReady) {
+                    await OneSignal.User.addTags({
+                        "overall": String(marmita),
+                        "uid": String(uid),
+                        "pendentes": String(pendentes),
+                        "last_sync": new Date().toISOString()
+                    });
+                    console.log("🛰️ Tags sincronizadas no momento exato (Vínculo Servidor OK).");
+                }
+            });
         } catch (e) { console.error("Erro OneSignal:", e); }
     });
 
+    // Sincronia Firebase permanece para alimentar o Workflow
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -74,9 +83,9 @@ window.sincronizarMindsetOneSignal = async (user) => {
 window.ativarNotificacoesManual = async () => {
     const raw = localStorage.getItem('mindset_data');
     const data = raw ? JSON.parse(raw) : null;
-    const uid = data?.uid || localStorage.getItem('mindset_uid') || (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
+    const uid = findUID(data);
 
-    if (window.showModal) window.showModal("SISTEMA", "Reconectando canais de alerta...");
+    if (window.showModal) window.showModal("SISTEMA", "Calibrando canais de comunicação...");
 
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function(OneSignal) {
@@ -86,7 +95,7 @@ window.ativarNotificacoesManual = async () => {
                 await OneSignal.login(uid);
                 if (data) window.sincronizarMindsetOneSignal(data);
             }
-            if (window.showModal) window.showModal("SUCESSO", "Sistema online!");
+            if (window.showModal) window.showModal("SUCESSO", "Protocolo Ativo.");
         } catch (e) { console.error(e); }
     });
 };
