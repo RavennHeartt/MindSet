@@ -2,6 +2,25 @@
  * MINDSET - SERVICE WORKER (LIGHT VERSION)
  * Focado em performance sem quebrar OneSignal/Firebase
  */
+// No seu arquivo sw.js (Service Worker do PWA)
+
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // 🛡️ FILTRO DE EXCLUSÃO CRÍTICO:
+  // Impede que o Service Worker tente cachear ou processar streams persistentes
+  // do Firebase, Google APIs e OneSignal. 
+  if (
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('gstatic.com') ||
+    url.hostname.includes('onesignal.com')
+  ) {
+    // bypass total: não chama event.respondWith, deixa a rede lidar
+    return; 
+  }
+
+});
 
 const CACHE_NAME = 'mindset-v2';
 const ASSETS = [
