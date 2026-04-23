@@ -129,13 +129,7 @@
 
     <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // 1. Registro do App
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log("SW App Ativo"));
-
-        // 2. Registro Exclusivo do OneSignal
-        navigator.serviceWorker.register('./OneSignalSDKWorker.js')
+    window.addEventListener('load', () => { navigator.serviceWorker.register('./OneSignalSDKWorker.js')
           .then(reg => console.log("SW OneSignal Ativo"));
     });
   }
