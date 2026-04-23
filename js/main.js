@@ -333,18 +333,17 @@ function confirmSelection() {
         
         await syncInitialSetupToFirebase(data);
         
-        // 1. Pede a permissão de notificação (o pop-up vai aparecer aqui)
-        if (window.OneSignal && window.OneSignal.Notifications) {
-            await window.OneSignal.Notifications.requestPermission();
-        }
+        // --- ONESIGNAL v16: Pedir Permissão Nativa ---
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(function() {
+            OneSignal.registerForPushNotifications();
+        });
         
-        // 2. Envia a identidade e tags iniciais para o OneSignal
+        // Dispara a sincronia de tags e ID
         if (typeof window.sincronizarMindsetOneSignal === "function") {
             window.sincronizarMindsetOneSignal(data);
         }
         
         setTimeout(() => { window.location.href = 'app.html'; }, 1500);
     });
-}
-
 }

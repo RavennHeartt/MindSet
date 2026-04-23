@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v15.1
- * Interface: OneSignal SDK Web v17+ (User Model)
+ * MINDSET - NOTIFICATIONS ENGINE v15.1 (Refatorado para v16 Clássico)
+ * Interface: OneSignal SDK Web v16
  * Foco: Sincronia em Tempo Real + Firebase Sync
  */
 
@@ -30,7 +30,7 @@ const findUID = (data) => {
 };
 
 /**
- * LÓGICA DE SINCRONIA (V17 USER MODEL)
+ * LÓGICA DE SINCRONIA (ONESIGNAL v16)
  */
 window.sincronizarMindsetOneSignal = async (user) => {
     const uid = findUID(user);
@@ -45,30 +45,20 @@ window.sincronizarMindsetOneSignal = async (user) => {
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-    const syncTask = async (OneSignal) => {
-        try {
-            await OneSignal.login(uid);
-            await OneSignal.User.addTags({
-                "overall": String(marmita),
-                "uid": String(uid),
-                "pendentes": String(pendentes),
-                "last_sync": new Date().toISOString()
-            });
-            console.log("✅ OneSignal v17: Sincronizado.");
-        } catch (e) {
-            console.error("❌ Erro no Sync OneSignal:", e);
-        }
-    };
+    // --- Sincronia OneSignal v16 ---
+    window.OneSignal = window.OneSignal || [];
+    OneSignal.push(function() {
+        OneSignal.setExternalUserId(uid);
+        OneSignal.sendTags({
+            "overall": String(marmita),
+            "pendentes": String(pendentes),
+            "last_sync": new Date().toISOString()
+        }).then(() => {
+            console.log("✅ OneSignal v16: Tags e ID Sincronizados.");
+        });
+    });
 
-    // Resiliência de Boot: Se o SDK estiver pronto, executa. Se não, agenda.
-    if (window.OneSignal && window.OneSignal.User) {
-        syncTask(window.OneSignal);
-    } else {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(syncTask);
-    }
-
-    // Sincronia Firebase (Usando a mesma instância compat do app.js)
+    // --- Sincronia Firebase ---
     try {
         if (typeof db !== 'undefined') {
             await db.collection("users").doc(uid).set({
@@ -85,33 +75,19 @@ window.sincronizarMindsetOneSignal = async (user) => {
 };
 
 /**
- * ATIVAÇÃO MANUAL (LIMPEZA DE IDENTIDADE)
+ * ATIVAÇÃO MANUAL (Menu HUD)
  */
 window.ativarNotificacoesManual = async () => {
+    if (window.showModal) window.showModal("SISTEMA", "Reativando alertas...");
+
+    window.OneSignal = window.OneSignal || [];
+    OneSignal.push(function() {
+        OneSignal.registerForPushNotifications();
+    });
+
     const raw = localStorage.getItem('mindset_data');
-    const data = raw ? JSON.parse(raw) : null;
-    const uid = findUID(data);
-
-    if (window.showModal) window.showModal("SISTEMA", "Calibrando Identidade OneSignal v17...");
-
-    const activateTask = async (OneSignal) => {
-        try {
-            await OneSignal.Notifications.requestPermission();
-            if (uid) {
-                await OneSignal.login(uid);
-                if (data) window.sincronizarMindsetOneSignal(data);
-            }
-            if (window.showModal) window.showModal("SUCESSO", "Motor v17 Conectado!");
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    if (window.OneSignal) {
-        activateTask(window.OneSignal);
-    } else {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(activateTask);
+    if (raw) {
+        window.sincronizarMindsetOneSignal(JSON.parse(raw));
     }
 };
 
