@@ -68,19 +68,20 @@ window.sincronizarMindsetOneSignal = async (user) => {
         window.OneSignalDeferred.push(syncTask);
     }
 
-    // Sincronia Firebase (Independente)
+    // Sincronia Firebase (Usando a mesma instância compat do app.js)
     try {
-        if (window.db) {
-            const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-            await updateDoc(doc(window.db, "users", uid), {
+        if (typeof db !== 'undefined') {
+            await db.collection("users").doc(uid).set({
                 setup: user.setup, 
                 nome: user.nome, 
                 pendentes: pendentes, 
                 marmitaAtual: marmita, 
                 lastSync: new Date().toISOString()
-            });
+            }, { merge: true });
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error("❌ Erro no Sync Firebase:", e);
+    }
 };
 
 /**

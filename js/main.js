@@ -332,8 +332,19 @@ function confirmSelection() {
         localStorage.setItem('mindset_data', JSON.stringify(data));
         
         await syncInitialSetupToFirebase(data);
-        if (typeof sendOneSignalTags === "function") sendOneSignalTags(data);
+        
+        // 1. Pede a permissão de notificação (o pop-up vai aparecer aqui)
+        if (window.OneSignal && window.OneSignal.Notifications) {
+            await window.OneSignal.Notifications.requestPermission();
+        }
+        
+        // 2. Envia a identidade e tags iniciais para o OneSignal
+        if (typeof window.sincronizarMindsetOneSignal === "function") {
+            window.sincronizarMindsetOneSignal(data);
+        }
         
         setTimeout(() => { window.location.href = 'app.html'; }, 1500);
     });
+}
+
 }
