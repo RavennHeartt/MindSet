@@ -27,11 +27,11 @@
       const db = firebase.firestore();
     </script>
 
-    <script src="https://cdn.onesignal.com/sdks/web/v17/OneSignalSDK.page.js" defer></script>
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
     <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-          await OneSignal.init({
+      window.OneSignal = window.OneSignal || [];
+      OneSignal.push(function() {
+          OneSignal.init({
               appId: "d9697834-3a0a-4609-b40d-8bc611eb9163",
               allowLocalhostAsSecureOrigin: true
           });
