@@ -1,6 +1,7 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v15.0
- * SDK Web v17+ (User Model Interface)
+ * MINDSET - NOTIFICATIONS ENGINE v15.1
+ * Interface: OneSignal SDK Web v17+ (User Model)
+ * Foco: Sincronia em Tempo Real + Firebase Sync
  */
 
 const mindsetVoices = {
@@ -28,6 +29,9 @@ const findUID = (data) => {
            (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
 };
 
+/**
+ * LÓGICA DE SINCRONIA (V17 USER MODEL)
+ */
 window.sincronizarMindsetOneSignal = async (user) => {
     const uid = findUID(user);
     if (!uid) return;
@@ -36,56 +40,77 @@ window.sincronizarMindsetOneSignal = async (user) => {
     const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
     const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
     const hora = new Date().getHours();
+    
     let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-    if (window.OneSignal) {
+    const syncTask = async (OneSignal) => {
         try {
-            // No SDK v17, o login retorna uma Promise e vincula o User Model
             await OneSignal.login(uid);
-            
-            // As tags agora são propriedades do objeto User
             await OneSignal.User.addTags({
                 "overall": String(marmita),
                 "uid": String(uid),
-                "pendentes": String(pendentes)
+                "pendentes": String(pendentes),
+                "last_sync": new Date().toISOString()
             });
-            console.log("🚀 OneSignal v17: Tags sincronizadas para " + uid);
+            console.log("✅ OneSignal v17: Sincronizado.");
         } catch (e) {
-            console.error("Erro OneSignal v17:", e);
+            console.error("❌ Erro no Sync OneSignal:", e);
         }
+    };
+
+    // Resiliência de Boot: Se o SDK estiver pronto, executa. Se não, agenda.
+    if (window.OneSignal && window.OneSignal.User) {
+        syncTask(window.OneSignal);
+    } else {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(syncTask);
     }
 
+    // Sincronia Firebase (Independente)
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
             await updateDoc(doc(window.db, "users", uid), {
-                setup: user.setup, nome: user.nome, pendentes: pendentes, marmitaAtual: marmita, lastSync: new Date().toISOString()
+                setup: user.setup, 
+                nome: user.nome, 
+                pendentes: pendentes, 
+                marmitaAtual: marmita, 
+                lastSync: new Date().toISOString()
             });
         }
     } catch (e) {}
 };
 
+/**
+ * ATIVAÇÃO MANUAL (LIMPEZA DE IDENTIDADE)
+ */
 window.ativarNotificacoesManual = async () => {
     const raw = localStorage.getItem('mindset_data');
     const data = raw ? JSON.parse(raw) : null;
     const uid = findUID(data);
 
-    if (window.showModal) window.showModal("SISTEMA", "Atualizando protocolos para OneSignal v17...");
+    if (window.showModal) window.showModal("SISTEMA", "Calibrando Identidade OneSignal v17...");
 
-    if (window.OneSignal) {
+    const activateTask = async (OneSignal) => {
         try {
-            // No v17, para resetar identidade usamos logout ou apenas login forçado
-            await OneSignal.logout(); 
             await OneSignal.Notifications.requestPermission();
-            
             if (uid) {
                 await OneSignal.login(uid);
                 if (data) window.sincronizarMindsetOneSignal(data);
             }
-            if (window.showModal) window.showModal("SUCESSO", "Motor v17 Ativo!");
-        } catch (e) { console.error(e); }
+            if (window.showModal) window.showModal("SUCESSO", "Motor v17 Conectado!");
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    if (window.OneSignal) {
+        activateTask(window.OneSignal);
+    } else {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(activateTask);
     }
 };
 
