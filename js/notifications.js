@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v14.7
- * ARQUIVO INTEGRAL: Identity Recovery + Realtime Sync + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v15.0
+ * SDK Web v17+ (User Model Interface)
  */
 
 const mindsetVoices = {
@@ -36,33 +36,27 @@ window.sincronizarMindsetOneSignal = async (user) => {
     const voice = mindsetVoices[user.setup] || mindsetVoices['patriarca'];
     const pendentes = (user.dailyTaskIds || []).length - (user.completedTodayIds || []).length;
     const hora = new Date().getHours();
-    
     let marmita = (hora >= 5 && hora < 12) ? `${user.nome}, ${voice.morning}` : 
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
     if (window.OneSignal) {
         try {
-            // LOGIN FORÇADO
+            // No SDK v17, o login retorna uma Promise e vincula o User Model
             await OneSignal.login(uid);
             
-            // DISPARO DAS TAGS
+            // As tags agora são propriedades do objeto User
             await OneSignal.User.addTags({
                 "overall": String(marmita),
                 "uid": String(uid),
-                "pendentes": String(pendentes),
-                "last_sync": new Date().toISOString()
+                "pendentes": String(pendentes)
             });
-            console.log("✅ OneSignal: Tags sincronizadas para " + uid);
+            console.log("🚀 OneSignal v17: Tags sincronizadas para " + uid);
         } catch (e) {
-            console.warn("⚠️ OneSignal Sync: Tentando recuperar vínculo de identidade...");
-            // Fallback para casos de conflito de ExternalID
-            await OneSignal.User.removeExternalId();
-            await OneSignal.login(uid);
+            console.error("Erro OneSignal v17:", e);
         }
     }
 
-    // Sincronia Firebase (Independente)
     try {
         if (window.db) {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -78,19 +72,19 @@ window.ativarNotificacoesManual = async () => {
     const data = raw ? JSON.parse(raw) : null;
     const uid = findUID(data);
 
-    if (window.showModal) window.showModal("SISTEMA", "Resetando protocolos de identidade OneSignal...");
+    if (window.showModal) window.showModal("SISTEMA", "Atualizando protocolos para OneSignal v17...");
 
     if (window.OneSignal) {
         try {
-            // LIMPEZA DE SEGURANÇA NO LOGIN
-            await OneSignal.User.removeExternalId(); 
+            // No v17, para resetar identidade usamos logout ou apenas login forçado
+            await OneSignal.logout(); 
             await OneSignal.Notifications.requestPermission();
             
             if (uid) {
                 await OneSignal.login(uid);
                 if (data) window.sincronizarMindsetOneSignal(data);
             }
-            if (window.showModal) window.showModal("SUCESSO", "Identidade Vinculada!");
+            if (window.showModal) window.showModal("SUCESSO", "Motor v17 Ativo!");
         } catch (e) { console.error(e); }
     }
 };
