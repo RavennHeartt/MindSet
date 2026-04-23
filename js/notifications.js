@@ -1,17 +1,20 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v16 (Com Limpeza de Cache)
+ * MINDSET - NOTIFICATIONS ENGINE v16.2 (Deep Clean)
+ * Interface: OneSignal SDK Web v16
+ * Foco: Limpeza de Cache, Sincronia em Tempo Real + Firebase Sync
  */
 
 // 1. DESINFECÇÃO DE SERVICE WORKER ANTIGO (Não apaga localStorage!)
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-            if (registration.active && registration.active.scriptURL.includes('OneSignal')) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+            // Se o SW não estiver no caminho certo do v16 (OneSignalSDKWorker.js), tchau!
+            if (!registration.active || !registration.active.scriptURL.includes('OneSignalSDKWorker.js')) {
                 registration.unregister().then(boolean => {
-                    console.log("🧹 SW antigo do OneSignal destruído:", boolean);
+                    console.log("🧹 SW Incompatível removido:", boolean);
                 });
             }
-        }
+        });
     });
 }
 
@@ -81,21 +84,29 @@ window.sincronizarMindsetOneSignal = async (user) => {
 };
 
 window.ativarNotificacoesManual = async () => {
-    if (window.showModal) window.showModal("SISTEMA", "Requisitando permissão...");
+    const permission = Notification.permission;
+    console.log("Estado atual da permissão:", permission);
+
+    if (permission === "denied") {
+        if (window.showModal) window.showModal("SISTEMA", "O Android ou o Chrome bloquearam as notificações. Por favor, redefina as permissões no cadeado da URL ou nas configurações do app.");
+        return;
+    }
+
+    if (window.showModal && permission !== "granted") {
+        window.showModal("SISTEMA", "Requisitando permissão...");
+    }
 
     window.OneSignal = window.OneSignal || [];
     OneSignal.push(function() {
-        // Usando o slidedown para evitar bloqueios do navegador
+        // Tenta o Slidedown, que contorna alguns bloqueios chatos
         OneSignal.showSlidedownPrompt({ force: true });
+        
+        // Se já tiver permissão (granted), roda a sincronia direta
+        if (permission === "granted") {
+            const raw = localStorage.getItem('mindset_data');
+            if (raw) window.sincronizarMindsetOneSignal(JSON.parse(raw));
+        }
     });
-
-    const raw = localStorage.getItem('mindset_data');
-    if (raw) {
-        // Dá um tempinho para o usuário clicar em "Permitir" antes de injetar as tags
-        setTimeout(() => {
-            window.sincronizarMindsetOneSignal(JSON.parse(raw));
-        }, 3000);
-    }
 };
 
 window.resetarNotificacoesTotal = window.ativarNotificacoesManual;
