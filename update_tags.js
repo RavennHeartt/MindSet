@@ -68,15 +68,18 @@ async function updateAllUsers() {
                     : voice.night_loss.replace("$", nome);
             }
 
-            // Injeta a tag no OneSignal
+            // Novo Endpoint (User Model) acessando via external_id
             await axios.put(
-                `https://onesignal.com/api/v1/apps/${process.env.ONESIGNAL_APP_ID}/users/${uid}`,
+                `https://onesignal.com/api/v1/apps/${process.env.ONESIGNAL_APP_ID}/users/by/external_id/${uid}`,
                 { 
-                    tags: { 
-                        overall: String(marmita),
-                        pendentes: String(pendentesCount),
-                        last_bg_sync: agora.toISOString()
-                    } 
+                    // No v17, as tags ficam dentro de properties
+                    properties: {
+                        tags: { 
+                            overall: String(marmita),
+                            pendentes: String(pendentesCount),
+                            last_bg_sync: agora.toISOString()
+                        } 
+                    }
                 },
                 { 
                     headers: { 
