@@ -1,6 +1,6 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v14.6
- * ARQUIVO INTEGRAL: Direct SDK Communication (No Deferred for Sync) + Firebase
+ * MINDSET - NOTIFICATIONS ENGINE v14.7
+ * ARQUIVO INTEGRAL: Identity Recovery + Realtime Sync + Firebase
  */
 
 const mindsetVoices = {
@@ -41,27 +41,25 @@ window.sincronizarMindsetOneSignal = async (user) => {
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-    // COMUNICAÇÃO DIRETA (FORA DO DEFERRED)
     if (window.OneSignal) {
         try {
+            // LOGIN FORÇADO
             await OneSignal.login(uid);
+            
+            // DISPARO DAS TAGS
             await OneSignal.User.addTags({
                 "overall": String(marmita),
                 "uid": String(uid),
                 "pendentes": String(pendentes),
                 "last_sync": new Date().toISOString()
             });
-            console.log("✅ Tags enviadas em tempo real via SDK Ativo.");
+            console.log("✅ OneSignal: Tags sincronizadas para " + uid);
         } catch (e) {
-            console.error("Erro OneSignal Realtime:", e);
+            console.warn("⚠️ OneSignal Sync: Tentando recuperar vínculo de identidade...");
+            // Fallback para casos de conflito de ExternalID
+            await OneSignal.User.removeExternalId();
+            await OneSignal.login(uid);
         }
-    } else {
-        // Fallback apenas se o SDK ainda não carregou (raro em app.html)
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async (OS) => {
-            await OS.login(uid);
-            await OS.User.addTags({ "overall": String(marmita), "uid": String(uid) });
-        });
     }
 
     // Sincronia Firebase (Independente)
@@ -80,16 +78,19 @@ window.ativarNotificacoesManual = async () => {
     const data = raw ? JSON.parse(raw) : null;
     const uid = findUID(data);
 
-    if (window.showModal) window.showModal("SISTEMA", "Reconectando canais de alerta...");
+    if (window.showModal) window.showModal("SISTEMA", "Resetando protocolos de identidade OneSignal...");
 
     if (window.OneSignal) {
         try {
+            // LIMPEZA DE SEGURANÇA NO LOGIN
+            await OneSignal.User.removeExternalId(); 
             await OneSignal.Notifications.requestPermission();
+            
             if (uid) {
                 await OneSignal.login(uid);
                 if (data) window.sincronizarMindsetOneSignal(data);
             }
-            if (window.showModal) window.showModal("SUCESSO", "Sistema online!");
+            if (window.showModal) window.showModal("SUCESSO", "Identidade Vinculada!");
         } catch (e) { console.error(e); }
     }
 };
