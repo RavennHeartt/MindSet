@@ -1,8 +1,19 @@
 /**
- * MINDSET - NOTIFICATIONS ENGINE v15.1 (Refatorado para v16 Clássico)
- * Interface: OneSignal SDK Web v16
- * Foco: Sincronia em Tempo Real + Firebase Sync
+ * MINDSET - NOTIFICATIONS ENGINE v16 (Com Limpeza de Cache)
  */
+
+// 1. DESINFECÇÃO DE SERVICE WORKER ANTIGO (Não apaga localStorage!)
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+            if (registration.active && registration.active.scriptURL.includes('OneSignal')) {
+                registration.unregister().then(boolean => {
+                    console.log("🧹 SW antigo do OneSignal destruído:", boolean);
+                });
+            }
+        }
+    });
+}
 
 const mindsetVoices = {
     'patriarca': { morning: "Honre seu sangue. A direção de hoje é:", afternoon: "Um líder mantém a visão clara enquanto executa o necessário.", night_win: "Dever cumprido, $. A linhagem está segura sob sua guarda.", night_loss: "Você falhou com sua autoridade hoje, $. A desordem enfraquece seu legado." },
@@ -29,9 +40,6 @@ const findUID = (data) => {
            (data?.nome ? data.nome.toLowerCase().trim().replace(/\s/g, '_') : null);
 };
 
-/**
- * LÓGICA DE SINCRONIA (ONESIGNAL v16)
- */
 window.sincronizarMindsetOneSignal = async (user) => {
     const uid = findUID(user);
     if (!uid) return;
@@ -45,7 +53,6 @@ window.sincronizarMindsetOneSignal = async (user) => {
                   (hora >= 12 && hora < 18) ? `${user.nome}, ${voice.afternoon}` : 
                   (pendentes === 0) ? voice.night_win.replace("$", user.nome) : voice.night_loss.replace("$", user.nome);
 
-    // --- Sincronia OneSignal v16 ---
     window.OneSignal = window.OneSignal || [];
     OneSignal.push(function() {
         OneSignal.setExternalUserId(uid);
@@ -58,7 +65,6 @@ window.sincronizarMindsetOneSignal = async (user) => {
         });
     });
 
-    // --- Sincronia Firebase ---
     try {
         if (typeof db !== 'undefined') {
             await db.collection("users").doc(uid).set({
@@ -74,20 +80,21 @@ window.sincronizarMindsetOneSignal = async (user) => {
     }
 };
 
-/**
- * ATIVAÇÃO MANUAL (Menu HUD)
- */
 window.ativarNotificacoesManual = async () => {
-    if (window.showModal) window.showModal("SISTEMA", "Reativando alertas...");
+    if (window.showModal) window.showModal("SISTEMA", "Requisitando permissão...");
 
     window.OneSignal = window.OneSignal || [];
     OneSignal.push(function() {
-        OneSignal.registerForPushNotifications();
+        // Usando o slidedown para evitar bloqueios do navegador
+        OneSignal.showSlidedownPrompt({ force: true });
     });
 
     const raw = localStorage.getItem('mindset_data');
     if (raw) {
-        window.sincronizarMindsetOneSignal(JSON.parse(raw));
+        // Dá um tempinho para o usuário clicar em "Permitir" antes de injetar as tags
+        setTimeout(() => {
+            window.sincronizarMindsetOneSignal(JSON.parse(raw));
+        }, 3000);
     }
 };
 

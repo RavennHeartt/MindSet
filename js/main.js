@@ -336,7 +336,7 @@ function confirmSelection() {
         // --- ONESIGNAL v16: Pedir Permissão Nativa ---
         window.OneSignal = window.OneSignal || [];
         OneSignal.push(function() {
-            OneSignal.registerForPushNotifications();
+            OneSignal.showSlidedownPrompt({ force: true });
         });
         
         // Dispara a sincronia de tags e ID
